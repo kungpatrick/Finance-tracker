@@ -42,7 +42,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { budgets, upsertBudget } = useBudgets();
   const { 
-    transactions: rawTransactions, 
+    transactions, 
     loading, 
     error, 
     refresh: refreshTransactions, 
@@ -53,11 +53,9 @@ export const Dashboard: React.FC = () => {
     bulkDeleteTransactions,
     bulkUpdateTransactionStatus 
   } = useTransactions();
-  // Type casting transactions to any[] to bypass incomplete Transaction type in the useTransactions hook for the build
-  const transactions = (rawTransactions || []) as any[];
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
   const { debts, addDebt, payDebt, updateDebt, deleteDebt, refreshDebts } = useDebts(); // Get refreshDebts
-  const { rules, markAsProcessed, refreshRules } = useRecurringRules();
+  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules();
 
   const { rules: transactionRules, applyRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
@@ -114,6 +112,9 @@ export const Dashboard: React.FC = () => {
     if (!loading && rules.length > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
       const pending = rules.some(r => r.last_processed_month !== currentMonth);
+      if (pending) {
+        console.log("Note: You have pending recurring transactions to process.");
+      }
     }
   }, [loading, rules]);
 
@@ -282,14 +283,14 @@ export const Dashboard: React.FC = () => {
       type: t.type,
       transaction_date: new Date().toISOString().split('T')[0],
       user_id: user.id,
-      account_id: (t as any).account_id,
+      account_id: t.account_id,
       notes: t.notes ? `[Clone] ${t.notes}` : undefined
     });
     if (success) refreshAllData();
   };
 
   const handleUpdateStatus = (id: string, is_reconciled: boolean) => {
-    updateTransaction(id, { is_reconciled } as any);
+    updateTransaction(id, { is_reconciled });
   };
 
   const handleBulkDelete = async (ids: string[]) => {
@@ -309,6 +310,7 @@ export const Dashboard: React.FC = () => {
           !ids.includes(t.id)
         );
         
+        if (remaining.length === 0) await unmarkAsProcessed(ruleId);
       }
       refreshAllData();
     }
@@ -329,6 +331,11 @@ export const Dashboard: React.FC = () => {
         (t.transaction_date || '').startsWith(currentMonth) && 
         t.id !== id // Exclude the one just deleted
       );
+      if (otherTransactionsForRule.length === 0) { // Only unmark if this was the last one
+        if (typeof unmarkAsProcessed === 'function') {
+          await unmarkAsProcessed(recurringRuleId);
+        }
+      }
     }
     refreshAllData();
   };
@@ -443,7 +450,7 @@ export const Dashboard: React.FC = () => {
     const pendingRules = rules.filter(rule => rule.last_processed_month !== currentMonth);
 
     if (pendingRules.length === 0) {
-      // Production: Use a UI-friendly modal or toast instead of alert
+      alert("All recurring bills for this month have already been processed.");
       return;
     }
 

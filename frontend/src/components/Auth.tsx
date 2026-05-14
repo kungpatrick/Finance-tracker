@@ -75,21 +75,18 @@ export const Auth: React.FC = () => {
               Email
             </label>
             <input 
-              id="auth-email"
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               required
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
             />
-            {/* Added id for label association */}
           </div>
           <div className="transition-colors">
             <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1 transition-colors">
               Password
             </label>
             <input 
-              id="auth-password"
               type="password" 
               onChange={(e) => setPassword(e.target.value)}
               required
