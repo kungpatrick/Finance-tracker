@@ -42,7 +42,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { budgets, upsertBudget } = useBudgets();
   const { 
-    transactions, 
+    transactions: rawTransactions, 
     loading, 
     error, 
     refresh: refreshTransactions, 
@@ -51,11 +51,13 @@ export const Dashboard: React.FC = () => {
     deleteTransaction, 
     updateTransaction,
     bulkDeleteTransactions,
-    bulkUpdateTransactionStatus 
+    bulkUpdateTransactionStatus
   } = useTransactions();
+  const transactions = (rawTransactions || []) as any[];
+
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
   const { debts, addDebt, payDebt, updateDebt, deleteDebt, refreshDebts } = useDebts(); // Get refreshDebts
-  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules();
+  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules() as any;
 
   const { rules: transactionRules, applyRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
@@ -464,7 +466,7 @@ export const Dashboard: React.FC = () => {
 
         // Check if a transaction matching the rule's core criteria already exists for this month and day
         const transactionAlreadyExists = transactions.some(t => {
-          const tDate = (t.transaction_date || '').split('T')[0];
+          const tDate = ((t.transaction_date as string) || '').split('T')[0];
           
           const dateMatches = tDate === formattedTransactionDate; // Exact date match
           const amountMatches = Math.abs(Number(t.amount)).toFixed(2) === Math.abs(Number(rule.amount)).toFixed(2); // Absolute amount match
@@ -517,7 +519,7 @@ export const Dashboard: React.FC = () => {
       if (t.splits && t.splits.length > 0) {
         t.splits.forEach((s: any) => {
           exportData.push({
-            Date: t.transaction_date.split('T')[0],
+            Date: (t.transaction_date as string).split('T')[0],
             Description: `${t.description} (Split: ${s.notes || 'No Note'})`,
             Category: s.category,
             Account: accountName,
@@ -527,7 +529,7 @@ export const Dashboard: React.FC = () => {
         });
       } else {
         exportData.push({
-          Date: t.transaction_date.split('T')[0],
+          Date: (t.transaction_date as string).split('T')[0],
           Description: t.description,
           Category: t.category,
             Account: accountName,

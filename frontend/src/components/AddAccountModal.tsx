@@ -31,12 +31,14 @@ export const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAcc
     e.preventDefault();
     setSubmitting(true);
     
+    const numericBalance = parseFloat(balance) || 0;
     const accountData = {
       name,
       type,
       currency,
       institution: institution || undefined,
-      balance: parseFloat(balance) || 0,
+      balance: numericBalance,
+      cleared_balance: numericBalance, // Initialize cleared_balance to match balance
     };
 
     let result;

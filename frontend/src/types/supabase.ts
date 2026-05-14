@@ -7,36 +7,53 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          balance: number
+          cleared_balance: number
+          created_at: string | null
+          currency: string
+          id: string
+          institution: string | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          cleared_balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          cleared_balance?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          institution?: string | null
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           category: string
+          created_at: string | null
           id: string
           is_rollover: boolean | null
           limit_amount: number
@@ -44,6 +61,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          created_at?: string | null
           id?: string
           is_rollover?: boolean | null
           limit_amount: number
@@ -51,6 +69,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          created_at?: string | null
           id?: string
           is_rollover?: boolean | null
           limit_amount?: number
@@ -61,25 +80,94 @@ export type Database = {
       categories: {
         Row: {
           color: string | null
+          created_at: string | null
           id: string
           name: string
+          type: string | null
           user_id: string | null
         }
         Insert: {
           color?: string | null
+          created_at?: string | null
           id?: string
           name: string
+          type?: string | null
           user_id?: string | null
         }
         Update: {
           color?: string | null
+          created_at?: string | null
           id?: string
           name?: string
+          type?: string | null
           user_id?: string | null
         }
         Relationships: []
       }
       debts: {
+        Row: {
+          created_at: string | null
+          id: string
+          interest_rate: number | null
+          min_payment: number | null
+          name: string
+          remaining_amount: number
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          min_payment?: number | null
+          name: string
+          remaining_amount: number
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          min_payment?: number | null
+          name?: string
+          remaining_amount?: number
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string | null
+          current_amount: number
+          deadline: string | null
+          id: string
+          name: string
+          target_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name: string
+          target_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          name?: string
+          target_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      liabilities: {
         Row: {
           id: string
           interest_rate: number | null
@@ -109,7 +197,114 @@ export type Database = {
         }
         Relationships: []
       }
-      goals: {
+      net_worth_history: {
+        Row: {
+          id: string
+          net_worth: number | null
+          snapshot_date: string | null
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          net_worth?: number | null
+          snapshot_date?: string | null
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          net_worth?: number | null
+          snapshot_date?: string | null
+          total_assets?: number
+          total_liabilities?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_bills: {
+        Row: {
+          amount: number
+          category: string
+          day_of_month: number | null
+          description: string
+          id: string
+          last_processed: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          day_of_month?: number | null
+          description: string
+          id?: string
+          last_processed?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          day_of_month?: number | null
+          description?: string
+          id?: string
+          last_processed?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_rules: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category: string
+          created_at: string | null
+          day_of_month: number
+          description: string
+          id: string
+          is_active: boolean | null
+          last_processed_month: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category: string
+          created_at?: string | null
+          day_of_month: number
+          description: string
+          id?: string
+          is_active?: boolean | null
+          last_processed_month?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category?: string
+          created_at?: string | null
+          day_of_month?: number
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          last_processed_month?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_rules_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      savings_goals: {
         Row: {
           current_amount: number | null
           deadline: string | null
@@ -136,30 +331,33 @@ export type Database = {
         }
         Relationships: []
       }
-      recurring_transactions: {
+      transaction_rules: {
         Row: {
-          amount: number
-          category: string
-          day_of_month: number
-          description: string | null
+          alias_name: string | null
+          auto_category: string | null
+          auto_tags: string[] | null
+          created_at: string | null
+          description_pattern: string
           id: string
           is_active: boolean | null
           user_id: string
         }
         Insert: {
-          amount: number
-          category: string
-          day_of_month: number
-          description?: string | null
+          alias_name?: string | null
+          auto_category?: string | null
+          auto_tags?: string[] | null
+          created_at?: string | null
+          description_pattern: string
           id?: string
           is_active?: boolean | null
           user_id: string
         }
         Update: {
-          amount?: number
-          category?: string
-          day_of_month?: number
-          description?: string | null
+          alias_name?: string | null
+          auto_category?: string | null
+          auto_tags?: string[] | null
+          created_at?: string | null
+          description_pattern?: string
           id?: string
           is_active?: boolean | null
           user_id?: string
@@ -168,48 +366,105 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
           category: string
           created_at: string | null
-          date: string
-          description: string | null
-          group_id: string | null
+          debt_id: string | null
+          description: string
+          goal_id: string | null
           id: string
+          is_reconciled: boolean | null
           is_verified: boolean | null
+          notes: string | null
           receipt_url: string | null
-          transaction_date: string | null
-          type: string | null
+          recurring_rule_id: string | null
+          splits: Json | null
+          tags: string[] | null
+          to_account_id: string | null
+          transaction_date: string
+          type: string
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category: string
           created_at?: string | null
-          date?: string
-          description?: string | null
-          group_id?: string | null
+          debt_id?: string | null
+          description: string
+          goal_id?: string | null
           id?: string
+          is_reconciled?: boolean | null
           is_verified?: boolean | null
+          notes?: string | null
           receipt_url?: string | null
-          transaction_date?: string | null
-          type?: string | null
+          recurring_rule_id?: string | null
+          splits?: Json | null
+          tags?: string[] | null
+          to_account_id?: string | null
+          transaction_date?: string
+          type: string
           user_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category?: string
           created_at?: string | null
-          date?: string
-          description?: string | null
-          group_id?: string | null
+          debt_id?: string | null
+          description?: string
+          goal_id?: string | null
           id?: string
+          is_reconciled?: boolean | null
           is_verified?: boolean | null
+          notes?: string | null
           receipt_url?: string | null
-          transaction_date?: string | null
-          type?: string | null
+          recurring_rule_id?: string | null
+          splits?: Json | null
+          tags?: string[] | null
+          to_account_id?: string | null
+          transaction_date?: string
+          type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -345,11 +600,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
