@@ -285,14 +285,14 @@ export const Dashboard: React.FC = () => {
       type: t.type,
       transaction_date: new Date().toISOString().split('T')[0],
       user_id: user.id,
-      account_id: t.account_id,
+      account_id: (t as any).account_id,
       notes: t.notes ? `[Clone] ${t.notes}` : undefined
     });
     if (success) refreshAllData();
   };
 
   const handleUpdateStatus = (id: string, is_reconciled: boolean) => {
-    updateTransaction(id, { is_reconciled });
+    updateTransaction(id, { is_reconciled } as any);
   };
 
   const handleBulkDelete = async (ids: string[]) => {

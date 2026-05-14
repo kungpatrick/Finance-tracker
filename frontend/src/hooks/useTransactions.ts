@@ -35,7 +35,7 @@ export const useTransactions = () => {
   }, [fetchTransactions]);
 
   const addTransaction = async (
-    transaction: Omit<TransactionInsert, 'id' | 'receipt_url'>, 
+    transaction: any, 
     file?: File
   ): Promise<{ success: boolean; data: any; error?: string }> => {
     setError(null);
