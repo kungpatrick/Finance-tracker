@@ -16,7 +16,7 @@ export const useTransactions = () => {
     setLoading(true);
     setError(null);
     const { data, error } = await supabase
-      .from('transactions' as any)
+      .from('transactions')
       .select('*')
       .order('transaction_date', { ascending: false });
 
@@ -35,9 +35,9 @@ export const useTransactions = () => {
   }, [fetchTransactions]);
 
   const addTransaction = async (
-    transaction: any, 
+    transaction: Omit<TransactionInsert, 'id' | 'receipt_url'>, 
     file?: File
-  ): Promise<{ success: boolean; data: any; error?: string }> => {
+  ): Promise<{ success: boolean; data: Transaction | null; error?: string }> => {
     setError(null);
     let receipt_url: string | null = null;
 
@@ -58,7 +58,7 @@ export const useTransactions = () => {
     }
 
     const { data, error } = await supabase
-      .from('transactions' as any)
+      .from('transactions')
       .insert([{ ...transaction, receipt_url }])
       .select();
 
@@ -78,7 +78,7 @@ export const useTransactions = () => {
     setError(null);
     const transactionsWithUserId = transactions.map(t => ({ ...t, user_id: userId }));
     const { data, error } = await supabase
-      .from('transactions' as any)
+      .from('transactions')
       .insert(transactionsWithUserId)
       .select();
 
@@ -96,7 +96,7 @@ export const useTransactions = () => {
   const updateTransaction = async (id: string, updates: TransactionUpdate) => {
     setError(null);
     const { data, error } = await supabase
-      .from('transactions' as any)
+      .from('transactions')
       .update(updates)
       .eq('id', id)
       .select();
@@ -183,7 +183,7 @@ export const useTransactions = () => {
   const deleteTransaction = async (id: string, receiptPath?: string | null) => {
     setError(null);
     const { error } = await supabase
-      .from('transactions' as any)
+      .from('transactions')
       .delete()
       .eq('id', id);
 

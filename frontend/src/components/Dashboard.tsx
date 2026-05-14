@@ -42,8 +42,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { budgets, upsertBudget } = useBudgets();
   const { 
-    transactions: rawTransactions, 
-    loading, 
+    transactions
     error, 
     refresh: refreshTransactions, 
     addTransaction, 
@@ -53,12 +52,8 @@ export const Dashboard: React.FC = () => {
     bulkDeleteTransactions,
     bulkUpdateTransactionStatus
   } = useTransactions();
-  const transactions = (rawTransactions || []) as any[];
-
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
-  const { debts, addDebt, payDebt, updateDebt, deleteDebt, refreshDebts } = useDebts(); // Get refreshDebts
-  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules() as any;
-
+  coeb,b
   const { rules: transactionRules, applyRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
   const { categories: customCategories } = useCategories();
@@ -171,13 +166,11 @@ export const Dashboard: React.FC = () => {
     return transactions.filter(t => {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
-        (t.description || '').toLowerCase().includes(searchLower) || 
+        t.description.toLowerCase().includes(searchLower) || 
         (t.notes?.toLowerCase().includes(searchLower)) ||
-        (t.tags?.some((tag: string) => tag.toLowerCase().includes(searchLower)));
+        (t.tags?.some(tag => tag.toLowerCase().includes(searchLower)));
         
-      const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
-      const matchesType = selectedType === 'All' || t.type === selectedType.toLowerCase();
-      const matchesAccount = selectedAccountId === 'All' || t.account_id === selectedAccountId || t.to_account_id === selectedAccountId;
+      coest matchesType = selectedType === 'All' || t.typctedAccountId || t.to_account_id === selectedAccountId;
       
       const tDate = t.transaction_date || '';
       const matchesStartDate = !startDate || tDate >= startDate;
@@ -285,20 +278,18 @@ export const Dashboard: React.FC = () => {
       type: t.type,
       transaction_date: new Date().toISOString().split('T')[0],
       user_id: user.id,
-      account_id: (t as any).account_id,
+      account_id: t.account_id,
       notes: t.notes ? `[Clone] ${t.notes}` : undefined
     });
     if (success) refreshAllData();
   };
-
   const handleUpdateStatus = (id: string, is_reconciled: boolean) => {
-    updateTransaction(id, { is_reconciled } as any);
+    updateTransaction(id, { is_reconciled });
   };
 
   const handleBulkDelete = async (ids: string[]) => {
     // 1. Identify affected recurring rules before deletion
-    const affectedTransactions = transactions.filter(t => ids.includes(t.id));
-    const ruleIdsToCheck = [...new Set(affectedTransactions.map(t => t.recurring_rule_id).filter(Boolean) as string[])];
+    const affectedTransactions = transactions.filter(t => ids.includ= actions.map(t => t.recurring_rule_id).filter(Boolean) as string[])];
 
     const result = await bulkDeleteTransactions(ids);
     if (result.success) {
@@ -466,17 +457,16 @@ export const Dashboard: React.FC = () => {
 
         // Check if a transaction matching the rule's core criteria already exists for this month and day
         const transactionAlreadyExists = transactions.some(t => {
-          const tDate = ((t.transaction_date as string) || '').split('T')[0];
+          const tDate = t.transaction_date.split('T')[0];
           
           const dateMatches = tDate === formattedTransactionDate; // Exact date match
           const amountMatches = Math.abs(Number(t.amount)).toFixed(2) === Math.abs(Number(rule.amount)).toFixed(2); // Absolute amount match
 
           // Account matches: If the rule specifies an account, the transaction MUST match that account.
           // If the rule does NOT specify an account (rule.account_id is null),
-          // then the transaction's account_id is NOT considered for deduplication.
-          const accountMatches = rule.account_id ? (t.account_id === rule.account_id) : true;
-
-          // Description matching: Handles both manual entries and system-prefixed "[Recurring]" entries
+          // then the trsaction's account_ed for deduplication.
+          ount_id === rule.account_id) : true;
+// Description matching: Handles both manual entries and system-prefixed "[Recurring]" entries
           const descriptionMatches =
             normalizeDescription(t.description) === normalizeDescription(rule.description) ||
             normalizeDescription(t.description) === normalizeDescription(`[Recurring] ${rule.description}`);
@@ -519,7 +509,7 @@ export const Dashboard: React.FC = () => {
       if (t.splits && t.splits.length > 0) {
         t.splits.forEach((s: any) => {
           exportData.push({
-            Date: (t.transaction_date as string).split('T')[0],
+            Date: t.transaction_date.split('T')[0],
             Description: `${t.description} (Split: ${s.notes || 'No Note'})`,
             Category: s.category,
             Account: accountName,
@@ -527,9 +517,8 @@ export const Dashboard: React.FC = () => {
             Type: t.type,
           });
         });
-      } else {
         exportData.push({
-          Date: (t.transaction_date as string).split('T')[0],
+          Date: t.transaction_date.split('T')[0],
           Description: t.description,
           Category: t.category,
             Account: accountName,
@@ -538,7 +527,6 @@ export const Dashboard: React.FC = () => {
         });
       }
     });
-
     const csv = Papa.unparse(exportData);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
