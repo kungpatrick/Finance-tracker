@@ -53,14 +53,14 @@ export const Dashboard: React.FC = () => {
     bulkUpdateTransactionStatus
   } = useTransactions();
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
-  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed, refreshDebts } = useRecurringRules() as any;
-  const { rules: transactionRules, applyRules } = useTransactionRules() as any;
+  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed, refreshDebts } = useRecurringRules();
+  const { rules: transactionRules, applyRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
   const { categories: customCategories } = useCategories();
 
   const pendingBillsCount = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-    return (rules || []).filter((r: any) => r.last_processed_month !== currentMonth).length;
+    return rules.filter(r => r.last_processed_month !== currentMonth).length;
   }, [rules]);
 
   // Combined refresh function to keep accounts and transactions in sync
@@ -108,7 +108,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!loading && rules.length > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-      const pending = rules.some((r: any) => r.last_processed_month !== currentMonth);
+      const pending = rules.some(r => r.last_processed_month !== currentMonth);
       if (pending) {
         console.log("Note: You have pending recurring transactions to process.");
       }
@@ -170,8 +170,10 @@ export const Dashboard: React.FC = () => {
         (t.notes?.toLowerCase().includes(searchLower)) ||
         (t.tags?.some(tag => tag.toLowerCase().includes(searchLower)));
         
-      coest matchesType = selectedType === 'All' || t.typctedAccountId || t.to_account_id === selectedAccountId;
-      
+      const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
+      const matchesType = selectedType === 'All' || t.type === selectedType.toLowerCase();
+      const matchesAccount = selectedAccountId === 'All' || t.account_id === selectedAccountId || t.to_account_id === selectedAccountId;
+
       const tDate = t.transaction_date || '';
       const matchesStartDate = !startDate || tDate >= startDate;
       const matchesEndDate = !endDate || tDate <= endDate;
@@ -440,7 +442,7 @@ export const Dashboard: React.FC = () => {
     // Generate a local YYYY-MM-01 string to avoid UTC shifts
     const currentMonth = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-01`;
     
-    const pendingRules = rules.filter((rule: any) => rule.last_processed_month !== currentMonth);
+    const pendingRules = rules.filter(rule => rule.last_processed_month !== currentMonth);
 
     if (pendingRules.length === 0) {
       alert("All recurring bills for this month have already been processed.");
