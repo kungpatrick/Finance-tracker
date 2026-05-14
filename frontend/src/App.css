@@ -1,0 +1,48 @@
+:root {
+  --header-bg: #f8f9fa;
+  --header-color: #333;
+  --background-color: #ffffff;
+  --text-color: #242424;
+  --border-color: #dee2e6;
+  --card-bg: #ffffff;
+}
+
+[data-theme='dark'] {
+  --header-bg: #333;
+  --header-color: #fff;
+  --background-color: #121212;
+  --text-color: #ffffff;
+  --border-color: #333333;
+  --card-bg: #1b1b1b;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.App {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Utilities from your reference */
+.header-split {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+}

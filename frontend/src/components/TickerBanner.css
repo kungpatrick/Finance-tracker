@@ -1,0 +1,45 @@
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.banner-container {
+  overflow: hidden;
+  margin-bottom: 20px;
+  width: 100%;
+  padding: 10px 0;
+  background: var(--header-bg);
+}
+
+.banner-scroll {
+  display: flex;
+  gap: 20px;
+  white-space: nowrap;
+  animation: scroll 30s linear infinite;
+  width: fit-content;
+}
+
+.banner-scroll:hover {
+  animation-play-state: paused;
+}
+
+.ticker-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  min-width: 200px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid var(--border-color);
+}
+
+.ticker-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Add more specific typography styles based on your HTML labels here */
