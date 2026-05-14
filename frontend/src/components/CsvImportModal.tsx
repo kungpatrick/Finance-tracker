@@ -118,7 +118,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ onClose, onImpor
         ...rest,
         account_id: rest.account_id || null // Ensure account_id is null if undefined/empty
       }));
-      const result = await bulkAddTransactions(dataToImport, userId);
+      const result = await bulkAddTransactions(dataToImport, userId!);
       if (result.success) {
         onImportSuccess?.();
         onClose();

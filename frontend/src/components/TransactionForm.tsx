@@ -39,10 +39,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [description, setDescription] = useState(initialData?.description || '');
   const [category, setCategory] = useState(initialData?.category || 'General');
   const [transactionDate, setTransactionDate] = useState(initialData?.transaction_date.split('T')[0] || new Date().toISOString().split('T')[0]);
-  const [type, setType] = useState<'expense' | 'income' | 'transfer'>(initialData?.type || 'expense');
+  const [type, setType] = useState<'expense' | 'income' | 'transfer'>((initialData?.type as any) || 'expense');
   const [notes, setNotes] = useState(initialData?.notes || '');
-  const [isSplit, setIsSplit] = useState(!!(initialData?.splits && initialData.splits.length > 0));
-  const [splits, setSplits] = useState<TransactionSplit[]>(initialData?.splits || []);
+  const [isSplit, setIsSplit] = useState(!!(initialData?.splits && Array.isArray(initialData.splits) && initialData.splits.length > 0));
+  const [splits, setSplits] = useState<TransactionSplit[]>((initialData?.splits as any) || []);
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
   const [file, setFile] = useState<File | null>(null);
   const [accountId, setAccountId] = useState(initialData?.account_id || '');
@@ -148,7 +148,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     if (initialData && onUpdateTransaction) {
       try {
-        const result = await onUpdateTransaction(initialData.id, formData);
+        const result = await onUpdateTransaction(initialData.id, formData as any);
         if (result.success) {
           if (onCancelEdit) onCancelEdit();
           onSuccess?.(); // Call onSuccess after successful update

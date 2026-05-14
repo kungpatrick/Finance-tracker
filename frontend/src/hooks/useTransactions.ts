@@ -52,8 +52,7 @@ export const useTransactions = () => {
       if (uploadError) {
         console.error('Error uploading receipt:', uploadError);
         setError(uploadError.message);
-        return { success: false, error: uploadError.message };
-      }
+        return { success: false, error: uploadError.message
       receipt_url = uploadData?.path || null;
     }
 
@@ -65,8 +64,7 @@ export const useTransactions = () => {
     if (error) {
       console.error('Error adding transaction:', error);
       setError(error.message);
-      return { success: false, error: error.message };
-    }
+      return { success: false
 
     if (data) {
       setTransactions(prev => [data[0], ...prev]);

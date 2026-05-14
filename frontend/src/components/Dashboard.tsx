@@ -42,7 +42,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { budgets, upsertBudget } = useBudgets();
   const { 
-    transactions
+    transactions,
     error, 
     refresh: refreshTransactions, 
     addTransaction, 
@@ -53,14 +53,14 @@ export const Dashboard: React.FC = () => {
     bulkUpdateTransactionStatus
   } = useTransactions();
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
-  coeb,b
-  const { rules: transactionRules, applyRules } = useTransactionRules();
+  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed, refreshDebts } = useRecurringRules() as any;
+  const { rules: transactionRules, applyRules } = useTransactionRules() as any;
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
   const { categories: customCategories } = useCategories();
 
   const pendingBillsCount = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-    return rules.filter(r => r.last_processed_month !== currentMonth).length;
+    return (rules || []).filter((r: any) => r.last_processed_month !== currentMonth).length;
   }, [rules]);
 
   // Combined refresh function to keep accounts and transactions in sync
@@ -108,7 +108,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!loading && rules.length > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-      const pending = rules.some(r => r.last_processed_month !== currentMonth);
+      const pending = rules.some((r: any) => r.last_processed_month !== currentMonth);
       if (pending) {
         console.log("Note: You have pending recurring transactions to process.");
       }
@@ -440,7 +440,7 @@ export const Dashboard: React.FC = () => {
     // Generate a local YYYY-MM-01 string to avoid UTC shifts
     const currentMonth = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-01`;
     
-    const pendingRules = rules.filter(rule => rule.last_processed_month !== currentMonth);
+    const pendingRules = rules.filter((rule: any) => rule.last_processed_month !== currentMonth);
 
     if (pendingRules.length === 0) {
       alert("All recurring bills for this month have already been processed.");
