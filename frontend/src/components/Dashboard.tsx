@@ -20,7 +20,7 @@ import { useDebts } from '../hooks/useDebts';
 import { useRecurringRules } from '../hooks/useRecurringRules';
 import { RecurringRulesModal } from './RecurringRulesModal';
 import { ReceiptModal } from './ReceiptModal';
-import { useAccounts } from '../hooks/useAccounts';
+import { useAccounts, type Account } from '../hooks/useAccounts';
 import { AddAccountModal } from './AddAccountModal';
 import { useCategories } from '../hooks/useCategories';
 import { CategoryManagementModal } from './CategoryManagementModal';
@@ -112,9 +112,6 @@ export const Dashboard: React.FC = () => {
     if (!loading && rules.length > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
       const pending = rules.some(r => r.last_processed_month !== currentMonth);
-      if (pending) {
-        // Recommendation: Use a Toast library like 'react-hot-toast' for better UX
-      }
     }
   }, [loading, rules]);
 
@@ -450,6 +447,7 @@ export const Dashboard: React.FC = () => {
     const pendingRules = rules.filter(rule => rule.last_processed_month !== currentMonth);
 
     if (pendingRules.length === 0) {
+      // Production: Use a UI-friendly modal or toast instead of alert
       return;
     }
 

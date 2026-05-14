@@ -75,6 +75,7 @@ export const Auth: React.FC = () => {
               Email
             </label>
             <input 
+              id="auth-email"
               type="email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
