@@ -173,13 +173,6 @@ export const Dashboard: React.FC = () => {
     return Array.from(combined).sort();
   }, [transactions, customCategories]);
 
-  const definedCategoryNames = useMemo(() => {
-    const customNames = customCategories.map(c => c.name);
-    // Ensure system categories are included so they are always available for defining rules, budgets, and transactions
-    const combined = new Set([...customNames, 'Debts', 'General', 'Savings', 'Transfer']);
-    return Array.from(combined).sort();
-  }, [customCategories]);
-
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       const searchLower = searchTerm.toLowerCase();
@@ -200,13 +193,13 @@ export const Dashboard: React.FC = () => {
   }, [transactions, searchTerm, selectedCategory, selectedType, selectedAccountId, startDate, endDate]);
 
   const budgetTrackerCategories = useMemo(() => {
-    // Show categories that are official (defined) OR have activity in the current view OR have a budget set
-    const combined = new Set(definedCategoryNames);
+    // Show categories that are officially defined, already used, or have a budget set
+    const combined = new Set(categories);
     filteredTransactions.forEach(t => { if (t.type === 'expense') combined.add(t.category); });
     budgets.forEach(b => { if (b.limit_amount > 0) combined.add(b.category); });
     // Note: Savings is filtered out inside the BudgetTracker component itself
     return Array.from(combined).sort();
-  }, [definedCategoryNames, filteredTransactions, budgets]);
+  }, [categories, filteredTransactions, budgets]);
 
   const comparisonTransactions = useMemo(() => {
     // Only calculate comparison if we are in a specific monthly view
@@ -999,7 +992,7 @@ export const Dashboard: React.FC = () => {
             addTransaction={addTransaction}
             existingTransactions={transactions}
             accounts={accounts}
-            categories={definedCategoryNames}
+            categories={categories}
             onApplyRules={applyRules}
             onSuccess={refreshAllData} // Pass refreshAllData as onSuccess
           />
@@ -1011,7 +1004,7 @@ export const Dashboard: React.FC = () => {
               addTransaction={addTransaction}
               existingTransactions={transactions}
               accounts={accounts}
-              categories={definedCategoryNames}
+              categories={categories}
               initialData={transactions.find(t => t.id === editingId)}
               onSuccess={refreshAllData} // Pass refreshAllData as onSuccess
               onCancelEdit={() => setEditingId(null)}
@@ -1070,7 +1063,7 @@ export const Dashboard: React.FC = () => {
 
       {isRecurringModalOpen && (
         <RecurringRulesModal 
-          categories={definedCategoryNames}
+          categories={categories}
           accounts={accounts}
           onClose={() => {
             setIsRecurringModalOpen(false);
@@ -1090,7 +1083,7 @@ export const Dashboard: React.FC = () => {
 
       {isRulesModalOpen && (
         <TransactionRulesModal 
-          categories={definedCategoryNames}
+          categories={categories}
           transactions={transactions}
           onUpdateTransaction={updateTransaction}
           onClose={() => {
