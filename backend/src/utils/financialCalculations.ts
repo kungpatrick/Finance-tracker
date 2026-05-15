@@ -97,15 +97,21 @@ export function getGlobalAIInsight(
   totalAssets: number,
   urgentGoal: AIContextGoal | null
 ) {
-  return getBudgetPrediction(
-    limit: ettrestDebt,
+  return getBudgetPrediction({
+    totalSpent,
+    limit: totalBudget,
+    daysPassed: currentDay,
+    upcomingFixedCosts: totalFixedCosts,
+    highestInterestDebt,
+    currentNetCashFlow: netCashFlow,
+    totalSavingsBalance: totalAssets,
     urgentGoal
   });
 }
 
 interface BudgetRow { category: string; limit_amount: string; }
 interface SpendingRow { category: string; total: string; }
-rt function calculateOptimizationSuggestions(
+export function calculateOptimizationSuggestions(
   budgets: BudgetRow[], 
   spending: SpendingRow[], 
   monthProgress: number
