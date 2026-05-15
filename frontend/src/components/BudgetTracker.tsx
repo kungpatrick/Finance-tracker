@@ -82,8 +82,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
               const spent = spendingByCategory[cat] || 0;
               const hasBudget = budgets.some(b => b.category === cat && b.limit_amount > 0);
-              // Only show if there is actual expense spending OR a budget limit already exists
-              return spent > 0 || hasBudget;
+              // Show if there is actual expense spending, an existing budget, 
+              // or if it's a custom/defined category (allowing users to set budgets for new categories)
+              const isDefined = categories.includes(cat);
+              return spent > 0 || hasBudget || isDefined;
             })
             .map(category => {
             const budget = budgets.find(b => b.category === category);

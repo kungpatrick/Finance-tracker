@@ -53,22 +53,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
   // Merge custom categories with any existing ones found in transactions
   const availableCategories = useMemo(() => {
-    const usedCategories = new Set(existingTransactions.map(t => t.category));
-    const combined = new Set([...categories, ...usedCategories]);
+    const combined = new Set([...categories]);
     
     // Force inclusion of system categories so they are always selectable in the UI
     combined.add('Debts');
-    
-    // Ensure 'General' is always available as a fallback
     combined.add('General');
+    combined.add('Savings');
 
-    // If editing a transaction that is currently 'Utility', ensure 'Utility' is in the list
+    // Ensure current form state and initial data categories are visible
+    if (category) combined.add(category);
     if (initialData?.category) combined.add(initialData.category);
 
     // Ensure 'Transfer' is always an available option if it's a transfer type
-    if (type === 'transfer' && !combined.has('Transfer')) combined.add('Transfer');
+    if (type === 'transfer') combined.add('Transfer');
     return Array.from(combined).sort();
-  }, [existingTransactions, categories, type]); // Added 'type' dependency
+  }, [categories, category, initialData?.category, type]); 
 
   const remainingToSplit = useMemo(() => {
     const total = parseFloat(amount) || 0;

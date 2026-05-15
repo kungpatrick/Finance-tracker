@@ -61,7 +61,7 @@ export const Dashboard: React.FC = () => {
   const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules();
   const { rules: transactionRules, applyRules, refreshRules: refreshTransactionRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
-  const { categories: customCategories } = useCategories();
+  const { categories: customCategories, refreshCategories } = useCategories();
 
   const pendingBillsCount = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
@@ -76,9 +76,10 @@ export const Dashboard: React.FC = () => {
       refreshGoals(),
       refreshDebts(),
       refreshRules(),
-      refreshTransactionRules()
+      refreshTransactionRules(),
+      refreshCategories()
     ]);
-  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules, refreshTransactionRules]);
+  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules, refreshTransactionRules, refreshCategories]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -168,9 +169,16 @@ export const Dashboard: React.FC = () => {
     const usedCategories = new Set(transactions.map(t => t.category));
     const customNames = customCategories.map(c => c.name);
     // Ensure system-level categories are always available for selection/filtering
-    const combined = new Set([...customNames, ...usedCategories, 'Debts', 'General']);
+    const combined = new Set([...customNames, ...usedCategories, 'Debts', 'General', 'Savings', 'Transfer']);
     return Array.from(combined).sort();
   }, [transactions, customCategories]);
+
+  const definedCategoryNames = useMemo(() => {
+    const customNames = customCategories.map(c => c.name);
+    // Ensure system categories are included so they are always available for defining rules, budgets, and transactions
+    const combined = new Set([...customNames, 'Debts', 'General', 'Savings']);
+    return Array.from(combined).sort();
+  }, [customCategories]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -820,7 +828,7 @@ export const Dashboard: React.FC = () => {
         <BudgetTracker
           budgets={budgets} 
           transactions={filteredTransactions} 
-          categories={categories} 
+          categories={definedCategoryNames} 
           onUpsertBudget={(cat, limit) => {
             if (!user?.id) return Promise.resolve({ success: false, error: 'Auth required' });
             return upsertBudget(cat, limit, user.id);
@@ -982,7 +990,7 @@ export const Dashboard: React.FC = () => {
             addTransaction={addTransaction}
             existingTransactions={transactions}
             accounts={accounts}
-            categories={categories}
+            categories={definedCategoryNames}
             onApplyRules={applyRules}
             onSuccess={refreshAllData} // Pass refreshAllData as onSuccess
           />
@@ -994,7 +1002,7 @@ export const Dashboard: React.FC = () => {
               addTransaction={addTransaction}
               existingTransactions={transactions}
               accounts={accounts}
-              categories={categories}
+              categories={definedCategoryNames}
               initialData={transactions.find(t => t.id === editingId)}
               onSuccess={refreshAllData} // Pass refreshAllData as onSuccess
               onCancelEdit={() => setEditingId(null)}
@@ -1053,7 +1061,7 @@ export const Dashboard: React.FC = () => {
 
       {isRecurringModalOpen && (
         <RecurringRulesModal 
-          categories={categories}
+          categories={definedCategoryNames}
           accounts={accounts}
           onClose={() => {
             setIsRecurringModalOpen(false);
@@ -1066,20 +1074,19 @@ export const Dashboard: React.FC = () => {
         <CategoryManagementModal 
           onClose={() => {
             setIsCategoryModalOpen(false);
-            refreshCategories();
+            refreshAllData();
           }} 
         />
       )}
 
       {isRulesModalOpen && (
         <TransactionRulesModal 
-          categories={categories}
+          categories={definedCategoryNames}
           transactions={transactions}
           onUpdateTransaction={updateTransaction}
           onClose={() => {
             setIsRulesModalOpen(false);
-            refreshTransactionRules();
-            refreshTransactions();
+            refreshAllData();
           }}
         />
       )}
