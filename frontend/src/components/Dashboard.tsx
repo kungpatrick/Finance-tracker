@@ -4,17 +4,12 @@ import { useBudgets } from '../hooks/useBudgets';
 import { useAuth } from '../hooks/useAuth';
 import { Navbar } from './Navbar';
 import { TransactionForm } from './TransactionForm'; // Keep this import
-import { CategoryBarChart } from './CategoryBarChart'; // Import the new Bar Chart
-import { CumulativeSpendingIncomeChart } from './CumulativeSpendingIncomeChart';
-import { SpendingTrendChart } from './SpendingTrendChart';
 import { CsvImportModal } from './CsvImportModal';
 import Papa from 'papaparse';
 import { SummaryCards } from './SummaryCards';
 import { BudgetTracker } from './BudgetTracker';
 import { SavingsGoals, type Goal } from './SavingsGoals';
 import { LiabilitiesAndDebts, type Debt } from './LiabilitiesAndDebts';
-import { FinancialActionModal, type ActionType } from './FinancialActionModal';
-import { AmortizationModal } from './AmortizationModal';
 import { useGoals } from '../hooks/useGoals';
 import { useDebts } from '../hooks/useDebts';
 import { useRecurringRules } from '../hooks/useRecurringRules';
@@ -24,25 +19,34 @@ import { useAccounts, type Account } from '../hooks/useAccounts';
 import { AddAccountModal } from './AddAccountModal';
 import { useCategories } from '../hooks/useCategories';
 import { CategoryManagementModal } from './CategoryManagementModal';
-import { NetWorthTrendChart } from './NetWorthTrendChart';
 import { useTransactionRules } from '../hooks/useTransactionRules';
 import { TransactionRulesModal } from './TransactionRulesModal';
 import { ProactiveIntelligence } from './ProactiveIntelligence';
 import { WealthProjectionCard } from './WealthProjectionCard';
-import { TagBreakdownChart } from './TagBreakdownChart';
 import { TransactionTable } from './TransactionTable';
-import { WealthVelocityChart } from './WealthVelocityChart';
-import { MerchantInsights } from './MerchantInsights';
 import { AccountSection } from './AccountSection';
-import { FinancialHealthRadar } from './FinancialHealthRadar';
 import { AIAssistant } from './AIAssistant';
 import { normalizeDescription } from '../utils/stringUtils'; // Import from utility file
+import type { ActionType } from './FinancialActionModal';
+
+// Dynamically import chart components
+const CategoryBarChart = React.lazy(() => import('./CategoryBarChart').then(m => ({ default: m.CategoryBarChart })));
+const CumulativeSpendingIncomeChart = React.lazy(() => import('./CumulativeSpendingIncomeChart').then(m => ({ default: m.CumulativeSpendingIncomeChart })));
+const SpendingTrendChart = React.lazy(() => import('./SpendingTrendChart').then(m => ({ default: m.SpendingTrendChart })));
+const NetWorthTrendChart = React.lazy(() => import('./NetWorthTrendChart').then(m => ({ default: m.NetWorthTrendChart })));
+const TagBreakdownChart = React.lazy(() => import('./TagBreakdownChart').then(m => ({ default: m.TagBreakdownChart })));
+const WealthVelocityChart = React.lazy(() => import('./WealthVelocityChart').then(m => ({ default: m.WealthVelocityChart })));
+const MerchantInsights = React.lazy(() => import('./MerchantInsights').then(m => ({ default: m.MerchantInsights })));
+const FinancialHealthRadar = React.lazy(() => import('./FinancialHealthRadar').then(m => ({ default: m.FinancialHealthRadar })));
+const FinancialActionModal = React.lazy(() => import('./FinancialActionModal').then(m => ({ default: m.FinancialActionModal })));
+const AmortizationModal = React.lazy(() => import('./AmortizationModal').then(m => ({ default: m.AmortizationModal })));
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { budgets, upsertBudget } = useBudgets();
   const { 
     transactions,
+    loading,
     error, 
     refresh: refreshTransactions, 
     addTransaction, 
@@ -53,24 +57,28 @@ export const Dashboard: React.FC = () => {
     bulkUpdateTransactionStatus
   } = useTransactions();
   const { goals, addGoal, fundGoal, updateGoal, deleteGoal, refreshGoals } = useGoals(); // Get refreshGoals
-  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed, refreshDebts } = useRecurringRules();
-  const { rules: transactionRules, applyRules } = useTransactionRules();
+  const { debts, addDebt, payDebt, updateDebt, deleteDebt, refreshDebts } = useDebts();
+  const { rules, markAsProcessed, refreshRules, unmarkAsProcessed } = useRecurringRules();
+  const { rules: transactionRules, applyRules, refreshRules: refreshTransactionRules } = useTransactionRules();
   const { accounts, deleteAccount, refreshAccounts } = useAccounts();
   const { categories: customCategories } = useCategories();
 
   const pendingBillsCount = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-    return rules.filter(r => r.last_processed_month !== currentMonth).length;
+    return (rules || []).filter((r: any) => r.last_processed_month !== currentMonth).length;
   }, [rules]);
 
   // Combined refresh function to keep accounts and transactions in sync
   const refreshAllData = React.useCallback(async () => {
-    await refreshTransactions();
-    await refreshAccounts();
-    await refreshGoals(); // Refresh goals
-    await refreshDebts(); // Refresh debts
-    await refreshRules(); // Refresh recurring rules
-  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules]);
+    await Promise.all([
+      refreshTransactions(),
+      refreshAccounts(),
+      refreshGoals(),
+      refreshDebts(),
+      refreshRules(),
+      refreshTransactionRules()
+    ]);
+  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules, refreshTransactionRules]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -92,12 +100,13 @@ export const Dashboard: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<Transaction>>({});
   const [deleteConfirmId, setDeleteConfirmId] = useState<{id: string, receipt?: string | null, recurring_rule_id?: string | null} | null>(null);
 
-  // Handle intermittent 401 Unauthorized errors by auto-refreshing once the session is stable
+  // Log unauthorized errors for debugging without creating infinite refresh loops.
+  // If the API key is invalid, repeated refreshing will cause lock contention in Supabase Auth.
   useEffect(() => {
     if (error && user && (error.toString().includes('401') || error.toString().toLowerCase().includes('unauthorized'))) {
-      refreshAllData();
+      console.error('Session unauthorized. Please check backend API keys or re-login.');
     }
-  }, [error, user, refreshAllData]);
+  }, [error, user]);
 
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>({ 
     key: 'transaction_date', 
@@ -108,7 +117,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!loading && rules.length > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
-      const pending = rules.some(r => r.last_processed_month !== currentMonth);
+      const pending = rules.some((r: any) => r.last_processed_month !== currentMonth);
       if (pending) {
         console.log("Note: You have pending recurring transactions to process.");
       }
@@ -158,7 +167,8 @@ export const Dashboard: React.FC = () => {
   const categories = useMemo(() => {
     const usedCategories = new Set(transactions.map(t => t.category));
     const customNames = customCategories.map(c => c.name);
-    const combined = new Set([...customNames, ...usedCategories]);
+    // Ensure system-level categories are always available for selection/filtering
+    const combined = new Set([...customNames, ...usedCategories, 'Debts', 'General']);
     return Array.from(combined).sort();
   }, [transactions, customCategories]);
 
@@ -167,7 +177,7 @@ export const Dashboard: React.FC = () => {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
         t.description.toLowerCase().includes(searchLower) || 
-        (t.notes?.toLowerCase().includes(searchLower)) ||
+        (t.notes?.toLowerCase().includes(searchLower) || false) ||
         (t.tags?.some(tag => tag.toLowerCase().includes(searchLower)));
         
       const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
@@ -224,8 +234,8 @@ export const Dashboard: React.FC = () => {
       .filter(t => t.type === 'expense')
       .forEach(t => {
         // If transaction is split, use split amounts. Otherwise use main amount.
-        if (t.splits && t.splits.length > 0) {
-          t.splits.forEach((s: any) => {
+        if (t.splits && Array.isArray(t.splits) && (t.splits as any[]).length > 0) {
+          (t.splits as unknown as any[]).forEach((s: any) => {
             const cat = s.category || 'General';
             dataMap[cat] = (dataMap[cat] || 0) + (Number(s.amount) || 0);
           });
@@ -291,8 +301,7 @@ export const Dashboard: React.FC = () => {
 
   const handleBulkDelete = async (ids: string[]) => {
     // 1. Identify affected recurring rules before deletion
-    const affectedTransactions = transactions.filter(t => ids.includ= actions.map(t => t.recurring_rule_id).filter(Boolean) as string[])];
-
+    const ruleIdsToCheck = [...new Set(transactions.filter(t => ids.includes(t.id)).map(t => t.recurring_rule_id).filter(Boolean) as string[])];
     const result = await bulkDeleteTransactions(ids);
     if (result.success) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
@@ -307,10 +316,10 @@ export const Dashboard: React.FC = () => {
         
         if (remaining.length === 0) await unmarkAsProcessed(ruleId);
       }
-      refreshAllData();
+      refreshAllData(); // Only refresh if bulk delete was successful
     }
   };
-
+  
   const handleBulkStatusUpdate = async (ids: string[], is_reconciled: boolean) => {
     const result = await bulkUpdateTransactionStatus(ids, is_reconciled);
     if (result.success) refreshAllData();
@@ -327,16 +336,14 @@ export const Dashboard: React.FC = () => {
         t.id !== id // Exclude the one just deleted
       );
       if (otherTransactionsForRule.length === 0) { // Only unmark if this was the last one
-        if (typeof unmarkAsProcessed === 'function') {
-          await unmarkAsProcessed(recurringRuleId);
-        }
+        await unmarkAsProcessed(recurringRuleId);
       }
     }
     refreshAllData();
   };
 
   const totalSavings = useMemo(() => goals.reduce((acc, g) => acc + (Number(g.current_amount) || 0), 0), [goals]);
-  const totalDebt = useMemo(() => debts.reduce((acc, d) => acc + (Number(d.remaining_amount) || 0), 0), [debts]);
+  const totalDebt = useMemo(() => debts.reduce((acc: number, d: any) => acc + (Number(d.remaining_amount) || 0), 0), [debts]);
   
   // Unified Home Currency Calculation (Normalizing to USD)
   const totalAccountBalance = useMemo(() => {
@@ -407,7 +414,7 @@ export const Dashboard: React.FC = () => {
           description: `Debt Payment: ${financialModal.contextName || 'Liability'}`,
           amount: data.amount,
           type: 'expense',
-          category: 'Utility',
+          category: 'Debts',
           recurring_rule_id: null, // Not from a recurring rule
           transaction_date: new Date().toISOString().split('T')[0],
           account_id: data.account_id,
@@ -442,7 +449,7 @@ export const Dashboard: React.FC = () => {
     // Generate a local YYYY-MM-01 string to avoid UTC shifts
     const currentMonth = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-01`;
     
-    const pendingRules = rules.filter(rule => rule.last_processed_month !== currentMonth);
+    const pendingRules = rules.filter((rule: any) => rule.last_processed_month !== currentMonth);
 
     if (pendingRules.length === 0) {
       alert("All recurring bills for this month have already been processed.");
@@ -466,9 +473,9 @@ export const Dashboard: React.FC = () => {
 
           // Account matches: If the rule specifies an account, the transaction MUST match that account.
           // If the rule does NOT specify an account (rule.account_id is null),
-          // then the trsaction's account_ed for deduplication.
-          ount_id === rule.account_id) : true;
-// Description matching: Handles both manual entries and system-prefixed "[Recurring]" entries
+          // then the transaction's account is ignored for deduplication.
+          const accountMatches = rule.account_id ? (t.account_id === rule.account_id) : true;
+          // Description matching: Handles both manual entries and system-prefixed "[Recurring]" entries
           const descriptionMatches =
             normalizeDescription(t.description) === normalizeDescription(rule.description) ||
             normalizeDescription(t.description) === normalizeDescription(`[Recurring] ${rule.description}`);
@@ -508,8 +515,8 @@ export const Dashboard: React.FC = () => {
     const exportData: any[] = [];
     filteredTransactions.forEach(t => {
       const accountName = accounts.find(a => a.id === t.account_id)?.name || 'N/A';
-      if (t.splits && t.splits.length > 0) {
-        t.splits.forEach((s: any) => {
+      if (t.splits && Array.isArray(t.splits) && t.splits.length > 0) {
+        (t.splits as unknown as any[]).forEach((s: any) => {
           exportData.push({
             Date: t.transaction_date.split('T')[0],
             Description: `${t.description} (Split: ${s.notes || 'No Note'})`,
@@ -895,61 +902,76 @@ export const Dashboard: React.FC = () => {
           </div>
           
           {activeTab === 'health' && (
-            <div className="animate-in fade-in duration-500 max-w-2xl mx-auto">
-              {/* Assuming you fetch metrics from /api/analytics/summary */}
-              <FinancialHealthRadar metrics={{ 
-                savings: 85, // Replace with real data from backend
-                burn: 65, 
-                debt: 90 
-              }} />
-            </div>
+            <React.Suspense fallback={<div className="h-[400px] flex items-center justify-center text-gray-400 italic">Analyzing Financial Health...</div>}>
+              <div className="animate-in fade-in duration-500 max-w-2xl mx-auto">
+                <FinancialHealthRadar metrics={{ 
+                  savings: Math.round(Math.max(0, Math.min(100, (totalIncome > 0 ? (totalIncome - totalSpending) / totalIncome : 0) * 100))),
+                  burn: Math.round(Math.max(0, Math.min(100, 100 - (totalIncome > 0 ? (totalSpending / totalIncome) * 100 : 0)))), 
+                  debt: Math.round((totalAccountBalance + totalSavings) + totalDebt > 0 
+                    ? ((totalAccountBalance + totalSavings) / (totalAccountBalance + totalSavings + totalDebt)) * 100 
+                    : 100)
+                }} />
+              </div>
+            </React.Suspense>
           )}
 
           {activeTab === 'velocity' && (
-            <div className="animate-in fade-in duration-500">
-              <WealthVelocityChart transactions={transactions} />
-            </div>
+            <React.Suspense fallback={<div className="h-[350px] flex items-center justify-center text-gray-400 italic">Calculating Wealth Velocity...</div>}>
+              <div className="animate-in fade-in duration-500">
+                <WealthVelocityChart transactions={transactions} />
+              </div>
+            </React.Suspense>
           )}
 
           {activeTab === 'networth' && (
-            <div className="animate-in fade-in duration-500">
-              <NetWorthTrendChart transactions={filteredTransactions} currentNetWorth={totalAccountBalance + totalSavings - totalDebt} />
-            </div>
+            <React.Suspense fallback={<div className="h-[320px] flex items-center justify-center text-gray-400 italic">Generating Net Worth History...</div>}>
+              <div className="animate-in fade-in duration-500">
+                <NetWorthTrendChart transactions={filteredTransactions} currentNetWorth={totalAccountBalance + totalSavings - totalDebt} />
+              </div>
+            </React.Suspense>
           )}
 
           {activeTab === 'merchants' && (
-            <MerchantInsights 
-              transactions={filteredTransactions} 
-              onMerchantClick={(name) => {
-                setSearchTerm(searchTerm === name ? '' : name);
-              }}
-            />
+            <React.Suspense fallback={<div className="h-[400px] flex items-center justify-center text-gray-400 italic">Loading Merchant Insights...</div>}>
+              <MerchantInsights 
+                transactions={filteredTransactions} 
+                onMerchantClick={(name: string) => {
+                  setSearchTerm(searchTerm === name ? '' : name);
+                }}
+              />
+            </React.Suspense>
           )}
 
           {activeTab === 'trends' && (
-            <div className="animate-in fade-in duration-500">
-              <SpendingTrendChart transactions={filteredTransactions} />
-            </div>
+            <React.Suspense fallback={<div className="h-[400px] flex items-center justify-center text-gray-400 italic">Loading Spending Trends...</div>}>
+              <div className="animate-in fade-in duration-500">
+                <SpendingTrendChart transactions={filteredTransactions} />
+              </div>
+            </React.Suspense>
           )}
           
           {activeTab === 'categories' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-              <div className="lg:col-span-8">
-                <CategoryBarChart 
-                  data={categoryData} 
-                  onBarClick={(cat) => setSelectedCategory(selectedCategory === cat ? 'All' : cat)} 
-                />
+            <React.Suspense fallback={<div className="h-[450px] flex items-center justify-center text-gray-400 italic">Loading Category Analytics...</div>}>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
+                <div className="lg:col-span-8">
+                  <CategoryBarChart 
+                    data={categoryData} 
+                    onBarClick={(cat: string) => setSelectedCategory(selectedCategory === cat ? 'All' : cat)} 
+                  />
+                </div>
+                <div className="lg:col-span-4">
+                  <TagBreakdownChart transactions={filteredTransactions} />
+                </div>
               </div>
-              <div className="lg:col-span-4">
-                <TagBreakdownChart transactions={filteredTransactions} />
-              </div>
-            </div>
+            </React.Suspense>
           )}
 
           {activeTab === 'cumulative' && (
-            <div className="animate-in fade-in duration-500">
-              <CumulativeSpendingIncomeChart transactions={filteredTransactions} />
-            </div>
+            <React.Suspense fallback={<div className="h-[400px] flex items-center justify-center text-gray-400 italic">Loading Cumulative Data...</div>}>
+              <div className="animate-in fade-in duration-500">
+                <CumulativeSpendingIncomeChart transactions={filteredTransactions} />
+              </div>
+            </React.Suspense>
           )}
         </div>
 
@@ -1042,7 +1064,10 @@ export const Dashboard: React.FC = () => {
 
       {isCategoryModalOpen && (
         <CategoryManagementModal 
-          onClose={() => setIsCategoryModalOpen(false)} 
+          onClose={() => {
+            setIsCategoryModalOpen(false);
+            refreshCategories();
+          }} 
         />
       )}
 
@@ -1051,7 +1076,11 @@ export const Dashboard: React.FC = () => {
           categories={categories}
           transactions={transactions}
           onUpdateTransaction={updateTransaction}
-          onClose={() => setIsRulesModalOpen(false)}
+          onClose={() => {
+            setIsRulesModalOpen(false);
+            refreshTransactionRules();
+            refreshTransactions();
+          }}
         />
       )}
 
@@ -1063,29 +1092,33 @@ export const Dashboard: React.FC = () => {
       )}
 
       {financialModal && (
-        <FinancialActionModal 
-          type={financialModal.type}
-          title={financialModal.title}
-          contextName={financialModal.contextName}
-          initialData={financialModal.initialData}
-          accounts={accounts} // Pass accounts here
-          isLocked={
-            financialModal.type === 'EDIT_GOAL' && financialModal.initialData?.id
-              ? transactions.some(t => t.goal_id === financialModal.initialData.id)
-              : financialModal.type === 'EDIT_DEBT' && financialModal.initialData?.id
-                ? transactions.some(t => t.debt_id === financialModal.initialData.id)
-                : false
-          }
-          onClose={() => setFinancialModal(null)}
-          onConfirm={handleFinancialConfirm}
-        />
+    <React.Suspense fallback={<div>Loading Modal...</div>}>
+      <FinancialActionModal 
+        type={financialModal.type}
+        title={financialModal.title}
+        contextName={financialModal.contextName}
+        initialData={financialModal.initialData}
+        accounts={accounts} // Pass accounts here
+        isLocked={
+          financialModal.type === 'EDIT_GOAL' && financialModal.initialData?.id
+            ? transactions.some(t => t.goal_id === financialModal.initialData.id)
+            : financialModal.type === 'EDIT_DEBT' && financialModal.initialData?.id
+              ? transactions.some(t => t.debt_id === financialModal.initialData.id)
+              : false
+        }
+        onClose={() => setFinancialModal(null)}
+        onConfirm={handleFinancialConfirm}
+      />
+    </React.Suspense>
       )}
 
       {selectedAmortization && (
-        <AmortizationModal 
-          debt={selectedAmortization}
-          onClose={() => setSelectedAmortization(null)}
-        />
+    <React.Suspense fallback={<div>Loading Amortization Chart...</div>}>
+      <AmortizationModal 
+        debt={selectedAmortization}
+        onClose={() => setSelectedAmortization(null)}
+      />
+    </React.Suspense>
       )}
 
       {deleteConfirmId && (
@@ -1104,7 +1137,6 @@ export const Dashboard: React.FC = () => {
                 onClick={async () => {
                   await handleDeleteTransactionAndUnmarkRule(deleteConfirmId.id, deleteConfirmId.receipt || undefined, deleteConfirmId.recurring_rule_id || undefined);
                   setDeleteConfirmId(null);
-                  refreshAllData();
                 }}
                 className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
               >

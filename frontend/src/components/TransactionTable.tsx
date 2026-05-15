@@ -86,7 +86,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
           {transactions.map(t => {
             const isExpanded = expandedId === t.id;
-            const hasExtraInfo = (t.notes || (t.tags && t.tags.length > 0) || (t.splits && t.splits.length > 0));
+            const hasExtraInfo = (t.notes || (t.tags && t.tags.length > 0) || (t.splits && Array.isArray(t.splits) && t.splits.length > 0));
 
             return (
             <React.Fragment key={t.id}>
@@ -129,9 +129,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
                   <td className="p-4">
                     <div className="flex flex-col gap-1 items-start">
                       <span className="px-2 py-1 text-[10px] font-bold uppercase rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
-                        {t.splits && t.splits.length > 0 ? 'Mixed Categories' : t.category}
+                        {t.splits && Array.isArray(t.splits) && t.splits.length > 0 ? 'Mixed Categories' : t.category}
                       </span>
-                      {t.splits && t.splits.length > 0 && (
+                      {t.splits && Array.isArray(t.splits) && t.splits.length > 0 && (
                         <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tighter">Split Transaction</span>
                       )}
                     </div>
@@ -185,11 +185,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
                         </div>
                       )}
                     </div>
-                    {t.splits && t.splits.length > 0 && (
+                    {t.splits && Array.isArray(t.splits) && t.splits.length > 0 && (
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 uppercase block mb-2">Split Breakdown</span>
                         <div className="space-y-2">
-                          {t.splits.map((s: any, i: number) => (
+                          {(t.splits as any[]).map((s: any, i: number) => (
                             <div key={i} className="flex justify-between items-center text-xs p-2 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700">
                               <span className="font-bold text-gray-600 dark:text-gray-400">{s.category}</span>
                               <span className="font-mono">${s.amount.toFixed(2)}</span>

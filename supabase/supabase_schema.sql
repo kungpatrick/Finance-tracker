@@ -117,6 +117,36 @@ CREATE TABLE public.transaction_rules (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. Create Recurring_Transactions Table
+create table public.recurring_transactions (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  user_id uuid not null,
+  amount numeric(12, 2) not null,
+  category text not null,
+  description text null,
+  day_of_month integer not null,
+  is_active boolean null default true,
+  constraint recurring_transactions_pkey primary key (id),
+  constraint recurring_transactions_user_id_fkey foreign KEY (user_id) references auth.users (id),
+  constraint recurring_transactions_day_of_month_check check (
+    (
+      (day_of_month >= 1)
+      and (day_of_month <= 31)
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_recurring_user_id on public.recurring_transactions using btree (user_id) TABLESPACE pg_default;
+
+ALTER TABLE public.recurring_transactions ENABLE ROW LEVEL SECURITY;
+
+create policy "Users can manage their own recurring transactions"
+on "public"."recurring_transactions"
+to public
+using (
+ (auth.uid() = user_id)
+);
+
 -- Foreign key indexes to speed up RLS-checked queries on lookup tables
 CREATE INDEX idx_accounts_user_id ON public.accounts(user_id);
 CREATE INDEX idx_savings_goals_user_id ON public.savings_goals(user_id);

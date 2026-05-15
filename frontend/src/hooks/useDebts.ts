@@ -38,7 +38,7 @@ export const useDebts = (): UseDebtsResult => {
       setError(dbError.message);
       setDebts([]);
     } else {
-      setDebts(data || []);
+      setDebts((data as unknown as Debt[]) || []);
     }
     setLoading(false);
   }, [user?.id]);
@@ -52,8 +52,8 @@ export const useDebts = (): UseDebtsResult => {
   const addDebt = async (debt: Omit<Debt, 'id'>) => {
     if (!user?.id) return { success: false, error: 'User not authenticated.' };
     const { data, error: dbError } = await supabase
-      .from('liabilities')
-      .insert({ ...debt, user_id: user.id })
+      .from('liabilities' as any)
+      .insert({ ...debt, user_id: user.id } as any)
       .select();
     if (dbError) {
       setError(dbError.message);
@@ -80,7 +80,7 @@ export const useDebts = (): UseDebtsResult => {
   };
 
   const updateDebt = async (id: string, updates: Partial<Debt>) => {
-    const { error: dbError } = await supabase.from('liabilities').update(updates).eq('id', id);
+    const { error: dbError } = await supabase.from('liabilities' as any).update(updates as any).eq('id', id);
     if (dbError) return { success: false, error: dbError.message };
     refreshDebts();
     return { success: true };

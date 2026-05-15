@@ -41,8 +41,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [transactionDate, setTransactionDate] = useState(initialData?.transaction_date.split('T')[0] || new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>((initialData?.type as any) || 'expense');
   const [notes, setNotes] = useState(initialData?.notes || '');
-  const [isSplit, setIsSplit] = useState(!!(initialData?.splits && Array.isArray(initialData.splits) && initialData.splits.length > 0));
-  const [splits, setSplits] = useState<TransactionSplit[]>((initialData?.splits as any) || []);
+  const [isSplit, setIsSplit] = useState(!!(initialData?.splits && Array.isArray(initialData.splits) && (initialData.splits as any[]).length > 0));
+  const [splits, setSplits] = useState<TransactionSplit[]>((initialData?.splits as unknown as TransactionSplit[]) || []);
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
   const [file, setFile] = useState<File | null>(null);
   const [accountId, setAccountId] = useState(initialData?.account_id || '');
@@ -55,6 +55,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const availableCategories = useMemo(() => {
     const usedCategories = new Set(existingTransactions.map(t => t.category));
     const combined = new Set([...categories, ...usedCategories]);
+    
+    // Force inclusion of system categories so they are always selectable in the UI
+    combined.add('Debts');
+    
+    // Ensure 'General' is always available as a fallback
+    combined.add('General');
+
+    // If editing a transaction that is currently 'Utility', ensure 'Utility' is in the list
+    if (initialData?.category) combined.add(initialData.category);
+
     // Ensure 'Transfer' is always an available option if it's a transfer type
     if (type === 'transfer' && !combined.has('Transfer')) combined.add('Transfer');
     return Array.from(combined).sort();
@@ -166,19 +176,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     try {
       const validatedData = transactionSchema.omit({ receipt_url: true }).parse(formData);
 
-      const result = await addTransaction({
-        user_id: validatedData.user_id, // Use validated data
-        transaction_date: validatedData.transaction_date, // Use validated data
-        description: validatedData.description, // Use validated data
-        category: validatedData.category, // Use validated data
-        type: validatedData.type, // Use validated data
-        amount: validatedData.amount, // Use validated data
-        account_id: validatedData.account_id, // Use validated data
-        to_account_id: validatedData.to_account_id, // Use validated data
-        notes: validatedData.notes, // Use validated data
-        tags: validatedData.tags, // Use validated data
-        splits: validatedData.splits // Use validated data
-      }, file || undefined);
+      const result = await addTransaction(formData as any, file || undefined);
 
       if (result.success) {
         setAmount('');

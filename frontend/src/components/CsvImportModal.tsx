@@ -88,8 +88,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ onClose, onImpor
       if (onApplyRules) {
         const suggestion = onApplyRules(item.description);
         if (suggestion) {
+          // Apply alias if suggested
           if (suggestion.alias) description = suggestion.alias;
-          if (suggestion.category) category = suggestion.category;
+          
+          // Protect system-critical categories (Debts and Savings) from being overwritten by general rules
+          const isSystemCategory = category === 'Debts' || category === 'Savings';
+          if (suggestion.category && suggestion.category !== category && !isSystemCategory) {
+            category = suggestion.category;
+          }
           if (suggestion.tags.length > 0) tags = Array.from(new Set([...tags, ...suggestion.tags]));
         }
       }
@@ -118,7 +124,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ onClose, onImpor
         ...rest,
         account_id: rest.account_id || null // Ensure account_id is null if undefined/empty
       }));
-      const result = await bulkAddTransactions(dataToImport, userId!);
+      const result = await bulkAddTransactions(dataToImport as any, userId!);
       if (result.success) {
         onImportSuccess?.();
         onClose();

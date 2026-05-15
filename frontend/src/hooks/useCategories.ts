@@ -22,7 +22,7 @@ export const useCategories = () => {
       .eq('user_id', user.id)
       .order('name', { ascending: true });
     
-    if (!error) setCategories(data || []);
+    if (!error) setCategories((data as unknown as Category[]) || []);
     setLoading(false);
   }, [user?.id]);
 
@@ -33,7 +33,7 @@ export const useCategories = () => {
   const addCategory = async (category: Omit<Category, 'id'>) => {
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ ...category, user_id: user?.id }])
+      .insert([{ ...category, user_id: user?.id } as any])
       .select();
     if (!error) fetchCategories();
     return { success: !error, error };

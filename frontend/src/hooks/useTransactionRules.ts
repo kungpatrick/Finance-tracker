@@ -33,7 +33,10 @@ export const useTransactionRules = () => {
       .eq('user_id', user.id)
       .eq('is_active', true);
     
-    if (!error) setRules(data || []);
+    if (!error && data) {
+      const typedRules = data.map(r => ({ ...r, auto_tags: r.auto_tags || [] })) as unknown as TransactionRule[];
+      setRules(typedRules);
+    }
     setLoading(false);
   }, [user?.id]);
 
@@ -60,7 +63,7 @@ export const useTransactionRules = () => {
   const addRule = async (rule: Omit<TransactionRule, 'id'>) => {
     const { error } = await supabase
       .from('transaction_rules')
-      .insert([{ ...rule, user_id: user?.id }]);
+      .insert([{ ...rule, user_id: user?.id } as any]);
     if (!error) fetchRules();
     return { success: !error, error };
   };

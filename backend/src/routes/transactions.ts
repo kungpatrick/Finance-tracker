@@ -19,10 +19,12 @@ const TransactionSchema = z.object({
   type: z.enum(['income', 'expense', 'transfer']).default('expense'),
   transaction_date: z.string().optional(),
   description: z.string().max(255).optional(),
+  notes: z.string().optional(), // Added notes
+  tags: z.array(z.string()).optional(), // Added tags
   splits: z.array(z.object({
     amount: z.coerce.number().positive(),
     category: z.string().min(1),
-    description: z.string().optional(),
+    notes: z.string().optional(),
   })).optional()
 }).refine(data => {
   if (data.splits && data.splits.length > 0) {
@@ -129,29 +131,25 @@ router.post('/import', asyncHandler(async (req: AuthRequest, res: Response) => {
   try {
     await query('BEGIN');
     // Validate the array of transactions
-    const transactionsToImport = z.array(TransactionSchema).parse(req.body);
+    const transactionsToImport = z.array(TransactionSchema.extend({
+      account_id: z.string().uuid().nullable().optional()
+    })).parse(req.body);
 
     if (transactionsToImport.length === 0) {
       return res.status(400).json({ error: 'No transactions provided for import' });
     }
 
-    // Parameterized bulk insert to prevent SQL Injection
-    const params: any[] = [];
-    const valueRows = transactionsToImport.map((t, i) => {
-      const offset = i * 6;
-      const date = t.transaction_date || new Date().toISOString();
-      params.push(userId, t.amount, t.category, t.type, t.description || null, date);
-      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
-    });
+    const results = [];
+    for (const tData of transactionsToImport) {
+      const res = await createTransaction(userId, tData);
+      results.push(res);
+    }
 
-    const sql = `
-      INSERT INTO transactions (user_id, amount, category, type, description, transaction_date)
-      VALUES ${valueRows.join(',')}
-      RETURNING id;
-    `;
-    const result = await query(sql, params);
     await query('COMMIT');
-    res.status(201).json({ message: `${result.rowCount} transactions imported successfully.`, importedIds: result.rows.map(row => row.id) });
+    res.status(201).json({ 
+      message: `${results.length} transactions imported successfully.`, 
+      importedIds: results.map(r => r.id) 
+    });
   } catch (err: any) {
     await query('ROLLBACK');
     throw err; // Re-throw for asyncHandler to catch and pass to global error handler
@@ -161,47 +159,32 @@ router.post('/import', asyncHandler(async (req: AuthRequest, res: Response) => {
 router.delete('/bulk', asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  if (!req.body || !req.body.ids) {
-    return res.status(400).json({ error: 'Missing transaction IDs for deletion' });
-  }
-
+  
   const { ids } = z.object({ ids: z.array(z.string().uuid()) }).parse(req.body);
 
-  console.log(`[DELETE /api/transactions/bulk] User: ${userId}, IDs: ${ids.length} transactions`);
-  
   if (ids.length === 0) return res.json({ success: true, count: 0 });
 
-  // Use ANY($1) to allow node-postgres to handle the array mapping correctly
+  // Using explicit casting to uuid[] and uuid to prevent Postgres type inference errors
   const result = await query(
-    'DELETE FROM transactions WHERE id = ANY($1) AND user_id = $2', 
+    'DELETE FROM transactions WHERE id = ANY($1::uuid[]) AND user_id = $2::uuid', 
     [ids, userId]
   );
   
   res.json({ success: true, count: result.rowCount || 0 });
 }));
 
-// Bulk Status Update (Reconciliation)
 router.patch('/bulk-status', asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  if (!req.body || !req.body.ids) {
-    return res.status(400).json({ error: 'Missing transaction IDs for status update' });
-  }
-
   const { ids, is_reconciled } = z.object({ 
     ids: z.array(z.string().uuid()), 
     is_reconciled: z.boolean() 
   }).parse(req.body);
 
   if (ids.length === 0) return res.json({ success: true, count: 0 });
-  console.log(`[PATCH /api/transactions/bulk-status] User: ${userId}, IDs: ${ids.length} transactions, Reconciled: ${is_reconciled}`);
-  console.log('IDs to update status:', ids);
 
-  // Use ANY($1) to allow node-postgres to handle the array mapping correctly
   const result = await query(
-    'UPDATE transactions SET is_reconciled = $1 WHERE id = ANY($2) AND user_id = $3',
+    'UPDATE transactions SET is_reconciled = $1 WHERE id = ANY($2::uuid[]) AND user_id = $3::uuid',
     [is_reconciled, ids, userId]
   );
   
@@ -210,8 +193,8 @@ router.patch('/bulk-status', asyncHandler(async (req: AuthRequest, res: Response
 
 router.patch('/bulk-verify', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { ids } = z.object({ ids: z.array(z.string().uuid()) }).parse(req.body);
-  const userId = req.user?.id;
-  const result = await query('UPDATE transactions SET is_verified = TRUE WHERE id = ANY($1) AND user_id = $2', [ids, userId]);
+  const userId = req.user?.id; // Ensure userId is a UUID
+  const result = await query('UPDATE transactions SET is_reconciled = TRUE WHERE id = ANY($1::uuid[]) AND user_id = $2::uuid', [ids, userId]);
   if (result.rowCount === 0) return res.status(404).json({ error: 'No transactions found for verification' });
   res.status(204).send();
 }));
@@ -222,8 +205,8 @@ router.patch('/bulk-category', asyncHandler(async (req: AuthRequest, res: Respon
     category: z.string().min(1)
   });
   const { ids, category } = BulkCategorySchema.parse(req.body);
-  const userId = req.user?.id;
-  const result = await query('UPDATE transactions SET category = $1 WHERE id = ANY($2) AND user_id = $3', [category, ids, userId]);
+  const userId = req.user?.id; // Ensure userId is a UUID
+  const result = await query('UPDATE transactions SET category = $1 WHERE id = ANY($2::uuid[]) AND user_id = $3::uuid', [category, ids, userId]);
   if (result.rowCount === 0) return res.status(404).json({ error: 'No transactions found for category update' });
   res.status(204).send();
 }));
@@ -232,7 +215,7 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
   const userId = req.user?.id;
   const result = await query(
-    'DELETE FROM transactions WHERE id = $1 AND user_id = $2',
+    'DELETE FROM transactions WHERE id = $1::uuid AND user_id = $2::uuid',
     [id, userId]
   );
   if (result.rowCount === 0) return res.status(404).json({ error: 'Transaction not found' });
@@ -245,14 +228,15 @@ router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const validatedData = TransactionSchema.parse(req.body);
-  const { amount, category, type, transaction_date, description } = validatedData;
+  const { amount, category, type, transaction_date, description, notes, tags, splits } = validatedData;
 
   const result = await query(
     `UPDATE transactions 
-     SET amount = $1, category = $2, type = $3, transaction_date = COALESCE($4, transaction_date), description = $5
-     WHERE id = $6 AND user_id = $7
+     SET amount = $1, category = $2, type = $3, transaction_date = COALESCE($4::date, transaction_date), 
+         description = $5, notes = $8, tags = $9, splits = $10
+     WHERE id = $6::uuid AND user_id = $7::uuid
      RETURNING *`,
-    [amount, category, type, transaction_date || null, description, id, userId]
+    [amount, category, type, transaction_date || null, description, id, userId, notes || null, tags || [], JSON.stringify(splits || [])]
   );
   if (result.rowCount === 0) return res.status(404).json({ error: 'Transaction not found or unauthorized' });
 

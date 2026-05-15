@@ -24,8 +24,9 @@ export const useRecurringRules = () => {
       .from('recurring_rules')
       .select('*')
       .eq('user_id', user.id);
-    
-    if (!error) setRules(data || []);
+
+    // Explicitly cast the returned data to match your interface
+    if (!error && data) setRules(data as unknown as RecurringRule[]);
     setLoading(false);
   }, [user?.id]);
 
@@ -34,9 +35,10 @@ export const useRecurringRules = () => {
   }, [fetchRules]);
 
   const addRule = async (rule: Omit<RecurringRule, 'id' | 'last_processed_month'>) => {
+    if (!user?.id) return { success: false, error: 'User not authenticated' };
     const { data, error } = await supabase
       .from('recurring_rules')
-      .insert([{ ...rule, user_id: user?.id }])
+      .insert([{ ...rule, user_id: user.id } as any])
       .select();
     if (!error) fetchRules();
     return { success: !error, error };
@@ -51,6 +53,15 @@ export const useRecurringRules = () => {
     return { success: !error };
   };
 
+  const unmarkAsProcessed = async (ruleId: string) => {
+    const { error } = await supabase
+      .from('recurring_rules')
+      .update({ last_processed_month: null })
+      .eq('id', ruleId);
+    if (!error) fetchRules();
+    return { success: !error };
+  };
+
   const deleteRule = async (id: string) => {
     const { error } = await supabase
       .from('recurring_rules')
@@ -60,5 +71,5 @@ export const useRecurringRules = () => {
     return { success: !error };
   };
 
-  return { rules, loading, addRule, markAsProcessed, deleteRule, refreshRules: fetchRules };
+  return { rules, loading, addRule, markAsProcessed, unmarkAsProcessed, deleteRule, refreshRules: fetchRules };
 };

@@ -51,9 +51,11 @@ export const useGoals = (): UseGoalsResult => {
 
   const addGoal = async (goal: Omit<Goal, 'id'>) => {
     if (!user?.id) return { success: false, error: 'User not authenticated.' };
+    // Strip UI-only properties that don't exist in the DB schema
+    const { has_transactions, ...dbGoal } = goal as any;
     const { data, error: dbError } = await supabase
       .from('savings_goals')
-      .insert({ ...goal, user_id: user.id })
+      .insert({ ...dbGoal, user_id: user.id })
       .select();
     if (dbError) {
       setError(dbError.message);
@@ -80,7 +82,9 @@ export const useGoals = (): UseGoalsResult => {
   };
 
   const updateGoal = async (id: string, updates: Partial<Goal>) => {
-    const { error: dbError } = await supabase.from('savings_goals').update(updates).eq('id', id);
+    // Strip UI-only properties that don't exist in the DB schema
+    const { has_transactions, ...dbUpdates } = updates as any;
+    const { error: dbError } = await supabase.from('savings_goals').update(dbUpdates).eq('id', id);
     if (dbError) return { success: false, error: dbError.message };
     refreshGoals();
     return { success: true };

@@ -25,7 +25,7 @@ export const useAccounts = () => {
       .eq('user_id', user.id)
       .order('name', { ascending: true });
     
-    if (!error) setAccounts(data || []);
+    if (!error) setAccounts((data as unknown as Account[]) || []);
     setLoading(false);
   }, [user?.id]);
 
@@ -36,7 +36,7 @@ export const useAccounts = () => {
   const addAccount = async (account: Omit<Account, 'id'>) => {
     const { data, error } = await supabase
       .from('accounts')
-      .insert([{ ...account, user_id: user?.id }])
+      .insert([{ ...account, user_id: user?.id } as any])
       .select();
     if (!error) fetchAccounts();
     return { success: !error, error };

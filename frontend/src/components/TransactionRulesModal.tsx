@@ -46,12 +46,9 @@ export const TransactionRulesModal: React.FC<TransactionRulesModalProps> = ({ ca
       is_active: true
     };
 
-    let success = false;
-    if (editingRule) {
-      success = await updateRule(editingRule.id, ruleData);
-    } else {
-      success = await addRule(ruleData);
-    }
+    const { success } = editingRule 
+      ? await updateRule(editingRule.id, ruleData) 
+      : await addRule(ruleData);
 
     if (success) {
       setEditingRule(null); // Clear editing state
@@ -75,6 +72,40 @@ export const TransactionRulesModal: React.FC<TransactionRulesModalProps> = ({ ca
     let updateCount = 0;
 
     for (const t of transactions) {
+      // Prepare a clean update object for all system-driven updates
+      const cleanUpdate = {
+        description: t.description,
+        amount: t.amount,
+        category: t.category,
+        type: t.type,
+        transaction_date: t.transaction_date.split('T')[0],
+        user_id: t.user_id,
+        account_id: t.account_id,
+        to_account_id: t.to_account_id,
+        notes: t.notes,
+        tags: t.tags || [],
+        splits: t.splits || [],
+        debt_id: t.debt_id,
+        goal_id: t.goal_id,
+        recurring_rule_id: t.recurring_rule_id
+      };
+
+      // Fix/Restore categorization for system-linked transactions (Debts and Goals)
+      if (t.debt_id && t.category !== 'Debts') {
+        await onUpdateTransaction(t.id, { ...cleanUpdate, category: 'Debts' });
+        updateCount++;
+        continue;
+      }
+
+      if (t.goal_id && t.category !== 'Savings') {
+        await onUpdateTransaction(t.id, { ...cleanUpdate, category: 'Savings' });
+        updateCount++;
+        continue;
+      }
+
+      // Protect system transactions (Debt payments and Goal funding) from automation rules
+      if (t.debt_id || t.goal_id) continue;
+
       const suggestion = applyRules(t.description);
       if (suggestion) {
         // Construct a clean update object containing only the fields the backend expects
@@ -89,7 +120,10 @@ export const TransactionRulesModal: React.FC<TransactionRulesModalProps> = ({ ca
           to_account_id: t.to_account_id,
           notes: t.notes,
           tags: t.tags || [],
-          splits: t.splits || []
+          splits: t.splits || [],
+          debt_id: t.debt_id,
+          goal_id: t.goal_id,
+          recurring_rule_id: t.recurring_rule_id
         };
         
         let hasChanges = false;
@@ -98,7 +132,9 @@ export const TransactionRulesModal: React.FC<TransactionRulesModalProps> = ({ ca
           updates.description = suggestion.alias;
           hasChanges = true;
         }
-        if (suggestion.category && suggestion.category !== t.category) {
+        // Protect system-critical categories (Debts and Savings) from being overwritten by general rules
+        const isSystemCategory = t.category === 'Debts' || t.category === 'Savings';
+        if (suggestion.category && suggestion.category !== t.category && !isSystemCategory) {
           updates.category = suggestion.category;
           hasChanges = true;
         }

@@ -24,7 +24,7 @@ export const useTransactions = () => {
       console.error('Error fetching transactions:', error);
       setError(error.message);
       setTransactions([]);
-    } else {
+    } else if (data) {
       setTransactions(data || []);
     }
     setLoading(false);
@@ -52,7 +52,8 @@ export const useTransactions = () => {
       if (uploadError) {
         console.error('Error uploading receipt:', uploadError);
         setError(uploadError.message);
-        return { success: false, error: uploadError.message
+        return { success: false, error: uploadError.message, data: null };
+      }
       receipt_url = uploadData?.path || null;
     }
 
@@ -64,7 +65,8 @@ export const useTransactions = () => {
     if (error) {
       console.error('Error adding transaction:', error);
       setError(error.message);
-      return { success: false
+      return { success: false, error: error.message, data: null };
+    }
 
     if (data) {
       setTransactions(prev => [data[0], ...prev]);
@@ -86,7 +88,7 @@ export const useTransactions = () => {
       return { success: false, error: error.message };
     }
     if (data) {
-      setTransactions(prev => [...data, ...prev]);
+      setTransactions(prev => [...(data as unknown as Transaction[]), ...prev]);
     }
     return { success: true, data };
   };
@@ -94,7 +96,7 @@ export const useTransactions = () => {
   const updateTransaction = async (id: string, updates: TransactionUpdate) => {
     setError(null);
     const { data, error } = await supabase
-      .from('transactions')
+      .from('transactions' as any)
       .update(updates)
       .eq('id', id)
       .select();
@@ -105,7 +107,7 @@ export const useTransactions = () => {
       return { success: false, error: error.message };
     }
     if (data) {
-      setTransactions(prev => prev.map(t => (t.id === id ? data[0] : t)));
+      setTransactions(prev => prev.map(t => (t.id === id ? (data[0] as unknown as Transaction) : t)));
     }
     return { success: true, data: data ? data[0] : null };
   };

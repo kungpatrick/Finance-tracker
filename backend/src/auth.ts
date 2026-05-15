@@ -4,10 +4,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
 
-// Prevent startup crash if placeholders are used in .env
-const isConfigured = supabaseUrl.startsWith('http') && !supabaseUrl.includes('your-project-id');
+// Ensure both URL and Key are present and URL looks like a valid Supabase URL
+const isSupabaseConfigured = supabaseUrl.startsWith('http') && !supabaseUrl.includes('your-project-id') && supabaseKey.length > 0;
 
-export const supabase = isConfigured 
+if (isSupabaseConfigured) {
+  console.log('[Auth] Supabase client initialized.');
+  console.log(`[Auth] URL: ${supabaseUrl}`);
+  console.log(`[Auth] Key prefix: ${supabaseKey.substring(0, 10)}...`);
+  console.log(`[Auth] Key length: ${supabaseKey.length} characters`);
+} else {
+  console.error('[Auth] Supabase client NOT configured correctly. Check your .env file for missing URL or Key, or an invalid URL format.');
+}
+
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseKey) 
   : null;
 
@@ -32,7 +41,14 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
-  if (error || !user) return res.status(401).json({ error: 'Invalid or expired token' });
+  if (error || !user) {
+    console.error('[AuthMiddleware] Verification failed:', {
+      message: error?.message || 'No user found',
+      tokenProvided: !!token,
+      tokenLength: token?.length
+    });
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
 
   req.user = { id: user.id };
   next();
