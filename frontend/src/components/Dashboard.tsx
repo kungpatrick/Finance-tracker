@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
   const definedCategoryNames = useMemo(() => {
     const customNames = customCategories.map(c => c.name);
     // Ensure system categories are included so they are always available for defining rules, budgets, and transactions
-    const combined = new Set([...customNames, 'Debts', 'General', 'Savings']);
+    const combined = new Set([...customNames, 'Debts', 'General', 'Savings', 'Transfer']);
     return Array.from(combined).sort();
   }, [customCategories]);
 

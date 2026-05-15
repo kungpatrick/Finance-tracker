@@ -59,13 +59,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     combined.add('Debts');
     combined.add('General');
     combined.add('Savings');
+    combined.add('Transfer');
 
     // Ensure current form state and initial data categories are visible
     if (category) combined.add(category);
     if (initialData?.category) combined.add(initialData.category);
-
-    // Ensure 'Transfer' is always an available option if it's a transfer type
-    if (type === 'transfer') combined.add('Transfer');
     return Array.from(combined).sort();
   }, [categories, category, initialData?.category, type]); 
 
