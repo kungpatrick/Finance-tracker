@@ -5,7 +5,7 @@ import {
   AIContextDebt, 
   AIContextGoal, 
   TransactionInput 
-} from '../types/finance.js';
+} from '../utils/finance.js';
 
 interface TransactionAIContext {
   budget_limit: string | null;

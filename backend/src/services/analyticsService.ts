@@ -2,7 +2,7 @@ import { query } from '../config/db.js';
 import { 
   DailyTrajectoryRow, AIContextDebt, AIContextGoal,
   Debt as DebtType, Budget as BudgetRowType
-} from '../types/finance.js';
+} from '../utils/finance.js';
 
 interface CurrentMonthTotals {
   income: string;

@@ -2,7 +2,7 @@ import { getBudgetPrediction } from '../services/predictionService.js';
 import { 
   Debt, Budget, AIContextDebt, AIContextGoal, 
   DailyTrajectoryRow 
-} from '../types/finance.js';
+} from './finance.js';
 
 export function calculateDebtMetrics(debts: Debt[]) {
   const totalDebt = debts.reduce((sum: number, d: Debt) => sum + parseFloat(d.remaining_amount || '0'), 0);
