@@ -1,5 +1,9 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import dns from 'node:dns';
+
+// Force Node.js to prefer IPv4 over IPv6. Render.com environments often lack IPv6 outbound routing.
+dns.setDefaultResultOrder('ipv4first');
 
 dotenv.config();
 
