@@ -110,9 +110,9 @@ export function calculateTransactionAlert(type: string, category: string, contex
     limit,
     new Date(txDate).getDate(),
     fixedCosts,
-    highestInterestDebt,
     currentNetCashFlow,
     totalSavingsBalance,
+    highestInterestDebt,
     urgentGoal
   );
 

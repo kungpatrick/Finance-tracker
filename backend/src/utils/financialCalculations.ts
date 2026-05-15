@@ -102,9 +102,9 @@ export function getGlobalAIInsight(
     totalBudget,
     currentDay,
     totalFixedCosts,
-    highestInterestDebt,
     netCashFlow,
     totalAssets,
+    highestInterestDebt,
     urgentGoal
   );
 }

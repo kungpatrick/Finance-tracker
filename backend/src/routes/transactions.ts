@@ -13,7 +13,7 @@ import {
 
 const router = Router();
 
-const TransactionSchema = z.object({
+const TransactionBaseSchema = z.object({
   amount: z.coerce.number().positive(),
   category: z.string().min(1),
   type: z.enum(['income', 'expense', 'transfer']).default('expense'),
@@ -26,7 +26,9 @@ const TransactionSchema = z.object({
     category: z.string().min(1),
     notes: z.string().optional(),
   })).optional()
-}).refine(data => {
+});
+
+const TransactionSchema = TransactionBaseSchema.refine(data => {
   if (data.splits && data.splits.length > 0) {
     const splitTotal = data.splits.reduce((sum, s) => sum + s.amount, 0);
     return Math.abs(splitTotal - data.amount) < 0.01;
@@ -131,7 +133,7 @@ router.post('/import', asyncHandler(async (req: AuthRequest, res: Response) => {
   try {
     await query('BEGIN');
     // Validate the array of transactions
-    const transactionsToImport = z.array(TransactionSchema.extend({
+    const transactionsToImport = z.array(TransactionBaseSchema.extend({
       account_id: z.string().uuid().nullable().optional()
     })).parse(req.body);
 
@@ -148,7 +150,7 @@ router.post('/import', asyncHandler(async (req: AuthRequest, res: Response) => {
     await query('COMMIT');
     res.status(201).json({ 
       message: `${results.length} transactions imported successfully.`, 
-      importedIds: results.map(r => r.id) 
+      importedIds: results.flatMap(r => r.transactions.map((t: any) => t.id)) 
     });
   } catch (err: any) {
     await query('ROLLBACK');
