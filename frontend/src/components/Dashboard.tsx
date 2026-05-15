@@ -199,6 +199,15 @@ export const Dashboard: React.FC = () => {
     });
   }, [transactions, searchTerm, selectedCategory, selectedType, selectedAccountId, startDate, endDate]);
 
+  const budgetTrackerCategories = useMemo(() => {
+    // Show categories that are official (defined) OR have activity in the current view OR have a budget set
+    const combined = new Set(definedCategoryNames);
+    filteredTransactions.forEach(t => { if (t.type === 'expense') combined.add(t.category); });
+    budgets.forEach(b => { if (b.limit_amount > 0) combined.add(b.category); });
+    // Note: Savings is filtered out inside the BudgetTracker component itself
+    return Array.from(combined).sort();
+  }, [definedCategoryNames, filteredTransactions, budgets]);
+
   const comparisonTransactions = useMemo(() => {
     // Only calculate comparison if we are in a specific monthly view
     if ((viewType !== 'monthly' && viewType !== 'lastMonth') || !startDate) return [];
@@ -828,7 +837,7 @@ export const Dashboard: React.FC = () => {
         <BudgetTracker
           budgets={budgets} 
           transactions={filteredTransactions} 
-          categories={definedCategoryNames} 
+          categories={budgetTrackerCategories} 
           onUpsertBudget={(cat, limit) => {
             if (!user?.id) return Promise.resolve({ success: false, error: 'Auth required' });
             return upsertBudget(cat, limit, user.id);
