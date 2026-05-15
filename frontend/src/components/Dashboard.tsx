@@ -193,13 +193,30 @@ export const Dashboard: React.FC = () => {
   }, [transactions, searchTerm, selectedCategory, selectedType, selectedAccountId, startDate, endDate]);
 
   const budgetTrackerCategories = useMemo(() => {
-    // Show categories that are officially defined, already used, or have a budget set
-    const combined = new Set(categories);
+    // Identify categories explicitly defined as 'income' to exclude them
+    const incomeCategoryNames = new Set(
+      customCategories.filter(c => c.type === 'income').map(c => c.name)
+    );
+
+    // Show categories that are officially defined as expenses, already used, or have a budget set
+    const combined = new Set<string>();
+    
+    // Add system-level and custom expense categories
+    combined.add('Debts');
+    combined.add('General');
+    customCategories.forEach(c => { if (c.type === 'expense') combined.add(c.name); });
+
+    // Include categories that have activity in the current view or have a budget set
     filteredTransactions.forEach(t => { if (t.type === 'expense') combined.add(t.category); });
     budgets.forEach(b => { if (b.limit_amount > 0) combined.add(b.category); });
-    // Note: Savings is filtered out inside the BudgetTracker component itself
+
+    // Safety: Remove income and system-only categories
+    incomeCategoryNames.forEach(name => combined.delete(name));
+    combined.delete('Savings');
+    combined.delete('Transfer');
+
     return Array.from(combined).sort();
-  }, [categories, filteredTransactions, budgets]);
+  }, [customCategories, filteredTransactions, budgets]);
 
   const comparisonTransactions = useMemo(() => {
     // Only calculate comparison if we are in a specific monthly view

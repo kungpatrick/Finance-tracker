@@ -77,8 +77,8 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {categories
             .filter(cat => {
-              // Exclude 'Savings' category from budget tracking display
-              if (cat === 'Savings') return false;
+              // Exclude non-budgetable system categories
+              if (cat === 'Savings' || cat === 'Transfer') return false;
 
               const spent = spendingByCategory[cat] || 0;
               const hasBudget = budgets.some(b => b.category === cat && b.limit_amount > 0);
