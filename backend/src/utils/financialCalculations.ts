@@ -98,21 +98,14 @@ export function getGlobalAIInsight(
   urgentGoal: AIContextGoal | null
 ) {
   return getBudgetPrediction(
-    totalSpent,
-    totalBudget,
-    currentDay,
-    totalFixedCosts,
-    netCashFlow,
-    totalAssets,
-    highestInterestDebt,
+    limit: ettrestDebt,
     urgentGoal
-  );
+  });
 }
 
 interface BudgetRow { category: string; limit_amount: string; }
 interface SpendingRow { category: string; total: string; }
-
-export function calculateOptimizationSuggestions(
+rt function calculateOptimizationSuggestions(
   budgets: BudgetRow[], 
   spending: SpendingRow[], 
   monthProgress: number

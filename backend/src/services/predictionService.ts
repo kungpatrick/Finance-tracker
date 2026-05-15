@@ -10,17 +10,31 @@ export interface PredictionResult {
   action?: { type: 'PAY_DEBT' | 'FUND_GOAL'; targetId?: string };
 }
 
-export const getBudgetPrediction = (
-  totalSpent: number, 
-  limit: number, 
-  daysPassed: number, 
-  daysInMonth: number = 30,
-  upcomingFixedCosts: number = 0, 
-  highestInterestDebt?: { id: string; name: string; interestRate: number; remainingAmount: number }, 
-  currentNetCashFlow: number = 0, 
-  totalSavingsBalance: number = 0,
-  urgentGoal?: { id: string; name: string }
-): PredictionResult => {
+export interface PredictionOptions {
+  totalSpent: number;
+  limit: number;
+  daysPassed: number;
+  daysInMonth?: number;
+  upcomingFixedCosts?: number;
+  highestInterestDebt?: { id: string; name: string; interest_rate: number; remaining_amount: number } | null;
+  currentNetCashFlow?: number;
+  totalSavingsBalance?: number;
+  urgentGoal?: { id: string; name: string } | null;
+}
+
+export const getBudgetPrediction = (options: PredictionOptions): PredictionResult => {
+  const {
+    totalSpent,
+    limit,
+    daysPassed,
+    daysInMonth = 30,
+    upcomingFixedCosts = 0,
+    highestInterestDebt,
+    currentNetCashFlow = 0,
+    totalSavingsBalance = 0,
+    urgentGoal
+  } = options;
+
   const safetyMargin = 1.05; // 5% uncertainty buffer for 2026 volatility
   
   // Stability check: Projections are highly volatile in the first 3 days
@@ -51,15 +65,15 @@ export const getBudgetPrediction = (
   let debtAdvice = "";
   let action = undefined;
 
-  if (highestInterestDebt && highestInterestDebt.interestRate > 10 && highestInterestDebt.remainingAmount > 0) { // Example threshold for high interest
-    if (currentNetCashFlow > 0 && highestInterestDebt.interestRate > 5) { // If net cash flow is positive and debt is high interest
-      debtAdvice = ` You have a positive cash flow. Consider directing funds towards your ${highestInterestDebt.name} debt (${highestInterestDebt.interestRate}% interest) to save on interest.`;
+  if (highestInterestDebt && highestInterestDebt.interest_rate > 10 && highestInterestDebt.remaining_amount > 0) { // Example threshold for high interest
+    if (currentNetCashFlow > 0 && highestInterestDebt.interest_rate > 5) { // If net cash flow is positive and debt is high interest
+      debtAdvice = ` You have a positive cash flow. Consider directing funds towards your ${highestInterestDebt.name} debt (${highestInterestDebt.interest_rate}% interest) to save on interest.`;
       action = { type: 'PAY_DEBT' as const, targetId: highestInterestDebt.id };
-    } else if (totalSavingsBalance > 0 && highestInterestDebt.interestRate > 5) { // If there are savings and debt is high interest
-      debtAdvice = ` You have savings of $${totalSavingsBalance.toLocaleString()}. Consider using some to pay down your ${highestInterestDebt.name} debt (${highestInterestDebt.interestRate}% interest) to reduce high-cost interest payments.`;
+    } else if (totalSavingsBalance > 0 && highestInterestDebt.interest_rate > 5) { // If there are savings and debt is high interest
+      debtAdvice = ` You have savings of $${totalSavingsBalance.toLocaleString()}. Consider using some to pay down your ${highestInterestDebt.name} debt (${highestInterestDebt.interest_rate}% interest) to reduce high-cost interest payments.`;
       action = { type: 'PAY_DEBT' as const, targetId: highestInterestDebt.id };
     } else {
-      debtAdvice = ` Prioritize repayment of your ${highestInterestDebt.name} debt (${highestInterestDebt.interestRate}% interest).`;
+      debtAdvice = ` Prioritize repayment of your ${highestInterestDebt.name} debt (${highestInterestDebt.interest_rate}% interest).`;
     }
   } else if (!action && currentNetCashFlow > 200 && urgentGoal) {
     const suggestionAmount = Math.floor(currentNetCashFlow * 0.5);

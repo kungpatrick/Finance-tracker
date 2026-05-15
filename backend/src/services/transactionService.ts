@@ -105,16 +105,16 @@ export function calculateTransactionAlert(type: string, category: string, contex
   const highestInterestDebt = context.highest_interest_debt;
   const urgentGoal = context.urgent_goal;
 
-  const prediction = getBudgetPrediction(
+  const prediction = getBudgetPrediction({
     totalSpent,
     limit,
-    new Date(txDate).getDate(),
-    fixedCosts,
+    daysPassed: new Date(txDate).getDate(),
+    upcomingFixedCosts: fixedCosts,
     currentNetCashFlow,
     totalSavingsBalance,
     highestInterestDebt,
     urgentGoal
-  );
+  });
 
   if (type === 'expense' && limit > 0 && totalSpent >= limit * 0.8) {
     return { 
