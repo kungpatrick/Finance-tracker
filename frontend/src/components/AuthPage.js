@@ -10,8 +10,9 @@ const AuthPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
-    const API_URL = import.meta.env.VITE_API_URL || '';
-    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+    // This AuthPage is currently a mock. In a real scenario, you'd integrate with Supabase auth directly here.
+    // const API_URL = import.meta.env.VITE_API_URL || '';
+    // const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
 
     // Note: Actual implementation will use your Supabase backend routes
     // For now, simulating success to proceed to Dashboard
