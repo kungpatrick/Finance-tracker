@@ -10,7 +10,7 @@ const AuthPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+    const API_URL = import.meta.env.VITE_API_URL || '';
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
 
     // Note: Actual implementation will use your Supabase backend routes
