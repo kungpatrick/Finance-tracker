@@ -72,7 +72,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
             </th>
             <th className="p-4 w-10 print:hidden"></th>
             <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => onSort('transaction_date')}>
-              Date {sortConfig?.key === 'transaction_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              Transaction Date {sortConfig?.key === 'transaction_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
             </th>
             <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
             <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Account</th>
@@ -104,10 +104,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
               <>
                   <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2">
-                      {(t.transaction_date || '').split('T')[0]}
                       {t.is_reconciled && (
                         <span className="text-green-500 cursor-help" title="Cleared / Reconciled">✓</span>
                       )}
+                      {(t.transaction_date || '').split('T')[0]}
                     </div>
                   </td>
                   <td className="p-4 text-sm text-gray-900 dark:text-white font-medium">
