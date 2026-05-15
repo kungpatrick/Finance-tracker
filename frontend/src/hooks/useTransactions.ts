@@ -7,6 +7,8 @@ export type Transaction = Database['public']['Tables']['transactions']['Row'];
 export type TransactionInsert = Database['public']['Tables']['transactions']['Insert'];
 export type TransactionUpdate = Database['public']['Tables']['transactions']['Update'];
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +129,7 @@ export const useTransactions = () => {
     setError(null);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/transactions/bulk', { 
+      const response = await fetch(`${API_URL}/api/transactions/bulk`, { 
         method: 'DELETE',
         headers,
         body: JSON.stringify({ ids }),
@@ -157,7 +159,7 @@ export const useTransactions = () => {
     setError(null);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/transactions/bulk-status', {
+      const response = await fetch(`${API_URL}/api/transactions/bulk-status`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ ids, is_reconciled }),
