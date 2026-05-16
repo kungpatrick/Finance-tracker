@@ -553,11 +553,12 @@ export const Dashboard: React.FC = () => {
             Type: t.type,
           });
         });
+      } else {
         exportData.push({
           Date: t.transaction_date.split('T')[0],
           Description: t.description,
           Category: t.category,
-            Account: accountName,
+          Account: accountName,
           Amount: t.amount,
           Type: t.type,
         });
