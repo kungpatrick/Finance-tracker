@@ -37,11 +37,12 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      // Only handle recovery if this tab has the recovery hash (prevents cross-tab pollution)
+      // Strictly check the hash to ensure the original tab doesn't flip to "Update" mode
       if (event === 'PASSWORD_RECOVERY' && window.location.hash.includes('type=recovery')) {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
+        // Clear hash so a page refresh doesn't keep the user in the update view indefinitely
         window.history.replaceState(null, "", window.location.pathname);
       }
     });

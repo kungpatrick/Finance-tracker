@@ -9,12 +9,15 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  const [isRecovering, setIsRecovering] = useState(false);
+  // Initialize based on hash and keep it "locked" for this render cycle
+  const [isRecovering, setIsRecovering] = useState(() => 
+    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  );
 
   useEffect(() => {
     // Listen for the recovery event to prevent redirecting to dashboard during password reset
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // Only set recovery mode if this specific tab has the recovery hash
+      // Only trigger recovery UI if the hash is present in THIS specific window
       if (event === 'PASSWORD_RECOVERY' && window.location.hash.includes('type=recovery')) {
         setIsRecovering(true);
       }
@@ -22,13 +25,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Immediate check for recovery hash to prevent flicker/redirect
-  const isDirectRecovery = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
-
   if (loading) return <div>Loading session...</div>;
   
-  // If no user is logged in, or we are in a recovery flow, show the Auth component
-  if (!user || isRecovering || isDirectRecovery) {
+  // Show Auth if no user, OR if this tab is specifically in recovery mode
+  if (!user || isRecovering) {
     return <Auth onRecoveryComplete={() => setIsRecovering(false)} />;
   }
 
