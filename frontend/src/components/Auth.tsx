@@ -17,7 +17,8 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   // Initialize state immediately from hash to prevent UI flicker in new tabs
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(() => 
     typeof window !== 'undefined' && 
-    (window.location.href.includes('type=recovery') || sessionStorage.getItem('finance_tracker_recovering') === 'true')
+    (window.location.hash.includes('type=recovery') || 
+     sessionStorage.getItem('finance_tracker_recovering') === 'true')
   );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,16 +40,30 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   }, [isDark]);
 
   useEffect(() => {
+    // Immediate lock for new tabs opening the recovery link
+    const hasRecoveryHash = window.location.hash.includes('type=recovery');
+    if (hasRecoveryHash) {
+      setIsUpdatingPassword(true);
+      setIsResetPassword(false);
+      setIsSignUp(false);
+      sessionStorage.setItem('finance_tracker_recovering', 'true');
+    }
+
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      // Strictly check the hash to ensure the original tab doesn't flip to "Update" mode
-      if (event === 'PASSWORD_RECOVERY' && window.location.href.includes('type=recovery')) {
+      // We strictly check the hash to ensure only the tab with the recovery link 
+      // actually transitions to the "Update" view. This prevents Tab A (requester)
+      // from being hijacked by the auth event broadcasted by Tab B (recoverer).
+      if (event === 'PASSWORD_RECOVERY' && window.location.hash.includes('type=recovery')) {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
         sessionStorage.setItem('finance_tracker_recovering', 'true');
-        // Clear the recovery fragment from the URL now that the state is locked
-        window.history.replaceState(null, "", window.location.pathname);
+        
+        // Clear the hash after a delay to ensure SDK and state are synced
+        setTimeout(() => {
+          window.history.replaceState(null, "", window.location.pathname);
+        }, 150);
       }
     });
     return () => subscription.unsubscribe();
