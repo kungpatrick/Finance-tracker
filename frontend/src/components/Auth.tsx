@@ -82,7 +82,13 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         }
       } else {
         const { error: authError } = isSignUp 
-          ? await supabase.auth.signUp({ email, password })
+          ? await supabase.auth.signUp({ 
+              email, 
+              password,
+              options: {
+                emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+              }
+            })
           : await supabase.auth.signInWithPassword({ email, password });
 
         if (authError) {
