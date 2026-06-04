@@ -9,9 +9,12 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
-  // Initialize based on hash and keep it "locked" for this render cycle
+  // Lock recovery mode if the hash is present or if we are the tab that requested it
   const [isRecovering, setIsRecovering] = useState(() => 
-    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+    typeof window !== 'undefined' && (
+      window.location.hash.includes('type=recovery') || 
+      sessionStorage.getItem('finance_tracker_awaiting_reset') === 'true'
+    )
   );
 
   useEffect(() => {
@@ -27,9 +30,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (loading) return <div>Loading session...</div>;
   
-  // Show Auth if no user, OR if this tab is specifically in recovery mode
-  if (!user || isRecovering) {
-    return <Auth onRecoveryComplete={() => setIsRecovering(false)} />;
+  // If we have a user but this specific tab is awaiting a reset or performing one,
+  // we show the Auth component to prevent the Dashboard from hijacking the view.
+  const isLocalRecovery = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+  const isAwaiting = typeof window !== 'undefined' && sessionStorage.getItem('finance_tracker_awaiting_reset') === 'true';
+
+  if (!user || isRecovering || isLocalRecovery || isAwaiting) {
+    return <Auth onRecoveryComplete={() => {
+      setIsRecovering(false);
+      sessionStorage.removeItem('finance_tracker_awaiting_reset');
+    }} />;
   }
 
   return <>{children}</>;

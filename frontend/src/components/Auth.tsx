@@ -10,7 +10,10 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isResetPassword, setIsResetPassword] = useState(false);
+  // Check sessionStorage to see if this specific tab was the one that sent the reset link
+  const [isResetPassword, setIsResetPassword] = useState(() => 
+    typeof window !== 'undefined' && sessionStorage.getItem('finance_tracker_awaiting_reset') === 'true'
+  );
   // Initialize state immediately from hash to prevent UI flicker in new tabs
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(() => 
     typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
@@ -61,6 +64,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         if (updateError) {
           setError(updateError.message);
         } else {
+          sessionStorage.removeItem('finance_tracker_awaiting_reset');
           setError(null);
           setMessage('Password updated successfully! You can now log in.');
           setIsUpdatingPassword(false);
@@ -75,6 +79,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         if (resetError) {
           setError(resetError.message);
         } else {
+          sessionStorage.setItem('finance_tracker_awaiting_reset', 'true');
           setMessage('A password reset link has been sent to your email address.');
         }
       } else {
@@ -170,7 +175,13 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
           {isResetPassword || isUpdatingPassword ? (
             <button 
               type="button"
-              onClick={() => { setIsResetPassword(false); setIsUpdatingPassword(false); setError(null); setMessage(null); }}
+              onClick={() => { 
+                setIsResetPassword(false); 
+                setIsUpdatingPassword(false); 
+                setError(null); 
+                setMessage(null);
+                sessionStorage.removeItem('finance_tracker_awaiting_reset');
+              }}
               className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline focus:outline-none"
             >
               Back to Login
