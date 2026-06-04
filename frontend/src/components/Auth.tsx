@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-export const Auth: React.FC = () => {
+interface AuthProps {
+  onRecoveryComplete?: () => void;
+}
+
+export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(
+    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -28,6 +34,14 @@ export const Auth: React.FC = () => {
   }, [isDark]);
 
   useEffect(() => {
+    // If we mount with a recovery hash, ensure we are in the right view and clean the URL
+    if (window.location.hash.includes('type=recovery')) {
+      setIsUpdatingPassword(true);
+      setIsResetPassword(false);
+      setIsSignUp(false);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -52,6 +66,9 @@ export const Auth: React.FC = () => {
       } else {
         setMessage('Password updated successfully! You can now log in.');
         setIsUpdatingPassword(false);
+        if (onRecoveryComplete) {
+          onRecoveryComplete();
+        }
       }
     } else if (isResetPassword) {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
