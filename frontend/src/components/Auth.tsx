@@ -58,41 +58,44 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
     setLoading(true);
     setError(null);
     setMessage(null);
-    
-    if (isUpdatingPassword) {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) {
-        setError(updateError.message);
+
+    try {
+      if (isUpdatingPassword) {
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) {
+          setError(updateError.message);
+        } else {
+          setMessage('Password updated successfully! You can now log in.');
+          setIsUpdatingPassword(false);
+          if (onRecoveryComplete) {
+            onRecoveryComplete();
+          }
+        }
+      } else if (isResetPassword) {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}${window.location.pathname}`,
+        });
+        if (resetError) {
+          setError(resetError.message);
+        } else {
+          setMessage('A password reset link has been sent to your email address.');
+        }
       } else {
-        setMessage('Password updated successfully! You can now log in.');
-        setIsUpdatingPassword(false);
-        if (onRecoveryComplete) {
-          onRecoveryComplete();
+        const { error: authError } = isSignUp 
+          ? await supabase.auth.signUp({ email, password })
+          : await supabase.auth.signInWithPassword({ email, password });
+
+        if (authError) {
+          setError(authError.message);
+        } else if (isSignUp) {
+          setMessage('A confirmation link has been sent to your email address.');
         }
       }
-    } else if (isResetPassword) {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      });
-      if (resetError) {
-        setError(resetError.message);
-      } else {
-        setMessage('A password reset link has been sent to your email address.');
-      }
-    } else {
-      const { error: authError } = isSignUp 
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password });
-
-      if (authError) {
-        setError(authError.message);
-      } else if (isSignUp) {
-        setMessage('A confirmation link has been sent to your email address.');
-      } else {
-        // Handle successful login redirect if not managed by a parent component
-      }
+    } catch (err: any) {
+      setError('The authentication server took too long to respond. Please check your internet connection or try again later.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
