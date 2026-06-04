@@ -59,13 +59,14 @@ const AuthPage = ({ onLogin }) => {
       <div style={{ marginTop: '20px' }}>
         <p style={{ fontSize: '0.8rem', marginBottom: '10px' }}>Or continue with</p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button disabled style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'not-allowed', color: 'inherit' }}>Google</button>
-          <button disabled style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'not-allowed', color: 'inherit' }}>Facebook</button>
+          <button type="button" disabled style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'not-allowed', color: 'inherit' }}>Google</button>
+          <button type="button" disabled style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'not-allowed', color: 'inherit' }}>Facebook</button>
         </div>
       </div>
 
       <div style={{ marginTop: '25px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
         <button 
+          type="button"
           onClick={() => { setIsLogin(!isLogin); setIsReset(false); }} 
           style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '0.9rem' }}
         >
@@ -75,6 +76,7 @@ const AuthPage = ({ onLogin }) => {
           <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.7 }}>
             Forgot password?{' '}
             <button 
+              type="button"
               onClick={() => setIsReset(true)}
               style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
             >

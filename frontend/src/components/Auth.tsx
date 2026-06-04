@@ -108,6 +108,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-black p-4 transition-colors">
       <div className="absolute top-4 right-4">
         <button 
+          type="button"
           onClick={() => setIsDark(!isDark)} 
           className="p-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-xl shadow-sm border border-gray-200 dark:border-gray-700"
           title="Toggle Theme"
@@ -170,6 +171,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400 transition-colors">
           {isResetPassword || isUpdatingPassword ? (
             <button 
+              type="button"
               onClick={() => { setIsResetPassword(false); setIsUpdatingPassword(false); setError(null); setMessage(null); }}
               className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline focus:outline-none"
             >
@@ -179,6 +181,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
             <>
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}
               <button 
+                type="button"
                 onClick={() => { setIsSignUp(!isSignUp); setIsResetPassword(false); setError(null); setMessage(null); }} 
                 className="ml-1 text-indigo-600 hover:text-indigo-800 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
