@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 const AuthPage = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isReset, setIsReset] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -10,11 +11,15 @@ const AuthPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
-    // This AuthPage is currently a mock. In a real scenario, you'd integrate with Supabase auth directly here.
-    // const API_URL = import.meta.env.VITE_API_URL || '';
-    // const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+    if (isReset) {
+      setTimeout(() => {
+        alert('Password reset link sent to ' + email);
+        setLoading(false);
+        setIsReset(false);
+      }, 1000);
+      return;
+    }
 
-    // Note: Actual implementation will use your Supabase backend routes
     // For now, simulating success to proceed to Dashboard
     setTimeout(() => {
       onLogin({ name: email.split('@')[0], email });
@@ -24,7 +29,7 @@ const AuthPage = ({ onLogin }) => {
 
   return (
     <div className="auth-container" style={{ maxWidth: '400px', margin: '100px auto', padding: '30px', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-      <h2 style={{ color: '#0d6efd' }}>{isLogin ? 'Sign In' : 'Create Account'}</h2>
+      <h2 style={{ color: '#0d6efd' }}>{isReset ? 'Reset Password' : (isLogin ? 'Sign In' : 'Create Account')}</h2>
       <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>Welcome to your Personal Finance Tracker</p>
       
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
@@ -36,16 +41,18 @@ const AuthPage = ({ onLogin }) => {
           required 
           style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'inherit' }}
         />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
-          required 
-          style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'inherit' }}
-        />
+        {!isReset && (
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+            style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'inherit' }}
+          />
+        )}
         <button type="submit" disabled={loading} style={{ padding: '12px', borderRadius: '6px', border: 'none', background: loading ? '#ccc' : '#0d6efd', color: 'white', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer' }}>
-          {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
+          {loading ? 'Processing...' : (isReset ? 'Send Reset Link' : (isLogin ? 'Sign In' : 'Sign Up'))}
         </button>
       </form>
 
@@ -59,11 +66,21 @@ const AuthPage = ({ onLogin }) => {
 
       <div style={{ marginTop: '25px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
         <button 
-          onClick={() => setIsLogin(!isLogin)} 
+          onClick={() => { setIsLogin(!isLogin); setIsReset(false); }} 
           style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '0.9rem' }}
         >
-          {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          {isReset ? "Back to Login" : (isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in")}
         </button>
+        {isLogin && !isReset && (
+          <div style={{ marginTop: '10px' }}>
+            <button 
+              onClick={() => setIsReset(true)}
+              style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '0.8rem' }}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
       </div>
       {!isLogin && <p style={{ fontSize: '0.7rem', marginTop: '10px', color: '#6c757d' }}>Note: You will receive a confirmation email to activate your account.</p>}
     </div>
