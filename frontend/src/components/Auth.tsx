@@ -182,7 +182,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
                     onClick={() => { setIsResetPassword(true); setError(null); setMessage(null); }}
                     className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
-                    Forgot Password?
+                    Forgot password? Reset it
                   </button>
                 </div>
               )}

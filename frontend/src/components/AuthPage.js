@@ -77,7 +77,7 @@ const AuthPage = ({ onLogin }) => {
               onClick={() => setIsReset(true)}
               style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '0.8rem' }}
             >
-              Forgot password?
+              Forgot password? Reset it
             </button>
           </div>
         )}
