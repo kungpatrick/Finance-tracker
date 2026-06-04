@@ -176,13 +176,14 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
                 {isSignUp ? 'Login' : 'Sign Up'}
               </button>
               {!isSignUp && (
-                <div className="mt-4">
+                <div className="mt-4 text-xs text-gray-600 dark:text-gray-400">
+                  Forgot password?{' '}
                   <button 
                     type="button"
                     onClick={() => { setIsResetPassword(true); setError(null); setMessage(null); }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                    className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline transition-colors"
                   >
-                    Forgot password? Reset it
+                    Reset it
                   </button>
                 </div>
               )}

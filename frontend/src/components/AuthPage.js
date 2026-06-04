@@ -72,12 +72,13 @@ const AuthPage = ({ onLogin }) => {
           {isReset ? "Back to Login" : (isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in")}
         </button>
         {isLogin && !isReset && (
-          <div style={{ marginTop: '10px' }}>
+          <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.7 }}>
+            Forgot password?{' '}
             <button 
               onClick={() => setIsReset(true)}
-              style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '0.8rem' }}
+              style={{ background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
             >
-              Forgot password? Reset it
+              Reset it
             </button>
           </div>
         )}
