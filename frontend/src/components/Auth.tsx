@@ -16,7 +16,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   );
   // Initialize state immediately from hash to prevent UI flicker in new tabs
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(() => 
-    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+    typeof window !== 'undefined' && window.location.href.includes('type=recovery')
   );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -40,12 +40,12 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      // Strictly check the hash to ensure the original tab doesn't flip to "Update" mode
-      if (event === 'PASSWORD_RECOVERY' && window.location.hash.includes('type=recovery')) {
+      // If this tab contains the recovery indicator in the URL, switch to update mode
+      if (event === 'PASSWORD_RECOVERY' && window.location.href.includes('type=recovery')) {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
-        // Clear hash so a page refresh doesn't keep the user in the update view indefinitely
+        // Clear the recovery fragment from the URL now that the state is locked
         window.history.replaceState(null, "", window.location.pathname);
       }
     });
