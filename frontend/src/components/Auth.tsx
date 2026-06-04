@@ -11,9 +11,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(
-    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
-  );
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -34,12 +32,12 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   }, [isDark]);
 
   useEffect(() => {
-    // If we mount with a recovery hash, ensure we are in the right view and clean the URL
-    if (window.location.hash.includes('type=recovery')) {
+    // Check for recovery type in hash immediately on mount
+    const hasRecoveryHash = window.location.hash.includes('type=recovery');
+    if (hasRecoveryHash) {
       setIsUpdatingPassword(true);
       setIsResetPassword(false);
       setIsSignUp(false);
-      window.history.replaceState(null, "", window.location.pathname);
     }
 
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
@@ -48,6 +46,8 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
+        // Only clear the hash AFTER we know the event has been captured
+        window.history.replaceState(null, "", window.location.pathname);
       }
     });
     return () => subscription.unsubscribe();
@@ -98,7 +98,8 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         }
       }
     } catch (err: any) {
-      setError('The authentication server took too long to respond. Please check your internet connection or try again later.');
+      console.error('Authentication Error:', err);
+      setError(err.message || 'The authentication server took too long to respond. Please check your internet connection or try again later.');
     } finally {
       setLoading(false);
     }

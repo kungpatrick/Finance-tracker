@@ -22,12 +22,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }, []);
 
   // Check URL hash for immediate detection of recovery flow on page load
-  const isHashRecovering = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+  // We use a local variable to ensure we don't flip-flop during Auth initialization
+  const hasRecoveryHash = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
 
   if (loading) return <div>Loading session...</div>;
   
   // If no user is logged in, or we are in a recovery flow, show the Auth component
-  if (!user || isRecovering || isHashRecovering) {
+  if (!user || isRecovering || hasRecoveryHash) {
     return <Auth onRecoveryComplete={() => setIsRecovering(false)} />;
   }
 
