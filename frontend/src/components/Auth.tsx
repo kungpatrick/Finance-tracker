@@ -11,7 +11,10 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  // Initialize state immediately from hash to prevent UI flicker in new tabs
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(() => 
+    typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -32,21 +35,13 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   }, [isDark]);
 
   useEffect(() => {
-    // Check for recovery type in hash immediately on mount
-    const hasRecoveryHash = window.location.hash.includes('type=recovery');
-    if (hasRecoveryHash) {
-      setIsUpdatingPassword(true);
-      setIsResetPassword(false);
-      setIsSignUp(false);
-    }
-
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      // Only handle recovery if this tab has the recovery hash (prevents cross-tab pollution)
+      if (event === 'PASSWORD_RECOVERY' && window.location.hash.includes('type=recovery')) {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
-        // Only clear the hash AFTER we know the event has been captured
         window.history.replaceState(null, "", window.location.pathname);
       }
     });
@@ -65,6 +60,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         if (updateError) {
           setError(updateError.message);
         } else {
+          setError(null);
           setMessage('Password updated successfully! You can now log in.');
           setIsUpdatingPassword(false);
           if (onRecoveryComplete) {
