@@ -12,17 +12,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Lock recovery mode if the hash is present or if we are the tab that requested it
   const [isRecovering, setIsRecovering] = useState(() => 
     typeof window !== 'undefined' && 
-    (window.location.href.includes('type=recovery') || 
+    (window.location.href.includes('type=recovery') ||
+     sessionStorage.getItem('finance_tracker_recovering') === 'true' ||
      sessionStorage.getItem('finance_tracker_awaiting_reset') === 'true')
   );
 
   useEffect(() => {
     // Listen for the recovery event to prevent redirecting to dashboard during password reset
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // If the event is PASSWORD_RECOVERY, we are in the recovery flow.
-      // We check the URL to ensure this tab is the one intended for the update.
       if (event === 'PASSWORD_RECOVERY' && window.location.href.includes('type=recovery')) {
         setIsRecovering(true);
+        sessionStorage.setItem('finance_tracker_recovering', 'true');
       }
     });
     return () => subscription.unsubscribe();
@@ -32,11 +32,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   
   // Immediate check for recovery flow in the current URL
   const isLocalRecovery = typeof window !== 'undefined' && window.location.href.includes('type=recovery');
+  const isLockedRecovery = typeof window !== 'undefined' && sessionStorage.getItem('finance_tracker_recovering') === 'true';
   const isAwaiting = typeof window !== 'undefined' && sessionStorage.getItem('finance_tracker_awaiting_reset') === 'true';
 
-  if (!user || isRecovering || isLocalRecovery || isAwaiting) {
+  if (!user || isRecovering || isLocalRecovery || isLockedRecovery || isAwaiting) {
     return <Auth onRecoveryComplete={() => {
       setIsRecovering(false);
+      sessionStorage.removeItem('finance_tracker_recovering');
       sessionStorage.removeItem('finance_tracker_awaiting_reset');
     }} />;
   }

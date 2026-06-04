@@ -16,7 +16,8 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   );
   // Initialize state immediately from hash to prevent UI flicker in new tabs
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(() => 
-    typeof window !== 'undefined' && window.location.href.includes('type=recovery')
+    typeof window !== 'undefined' && 
+    (window.location.href.includes('type=recovery') || sessionStorage.getItem('finance_tracker_recovering') === 'true')
   );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -40,11 +41,12 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event triggered when clicking the email link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      // If this tab contains the recovery indicator in the URL, switch to update mode
+      // Strictly check the hash to ensure the original tab doesn't flip to "Update" mode
       if (event === 'PASSWORD_RECOVERY' && window.location.href.includes('type=recovery')) {
         setIsUpdatingPassword(true);
         setIsResetPassword(false);
         setIsSignUp(false);
+        sessionStorage.setItem('finance_tracker_recovering', 'true');
         // Clear the recovery fragment from the URL now that the state is locked
         window.history.replaceState(null, "", window.location.pathname);
       }
@@ -64,6 +66,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         if (updateError) {
           setError(updateError.message);
         } else {
+          sessionStorage.removeItem('finance_tracker_recovering');
           sessionStorage.removeItem('finance_tracker_awaiting_reset');
           setError(null);
           setMessage('Password updated successfully! You can now log in.');
@@ -183,6 +186,7 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
                 setIsUpdatingPassword(false); 
                 setError(null); 
                 setMessage(null);
+                sessionStorage.removeItem('finance_tracker_recovering');
                 sessionStorage.removeItem('finance_tracker_awaiting_reset');
               }}
               className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline focus:outline-none"
