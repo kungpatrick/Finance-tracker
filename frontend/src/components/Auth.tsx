@@ -74,7 +74,10 @@ export const Auth: React.FC<AuthProps> = ({ onRecoveryComplete }) => {
         }
       } else if (isResetPassword) {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          // Hardcode the redirect to match your Supabase Dashboard exactly.
+          // This ensures that the recovery link always points to the correct /auth path
+          // regardless of which page the user started on.
+          redirectTo: `${window.location.origin}/auth`,
         });
         if (resetError) {
           setError(resetError.message);
