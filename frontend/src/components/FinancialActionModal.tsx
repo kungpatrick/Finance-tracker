@@ -65,12 +65,27 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
   onConfirm,
 }) => {
   // Ensure formData is initialized and synchronized with initialData
-  const [formData, setFormData] = useState<any>(initialData || {}); // Stores name, total_amount, remaining_amount, interest_rate
+  const [formData, setFormData] = useState<any>(() => {
+    if (type === 'OPTIMIZE_BUDGET' && initialData) {
+      const suggested = initialData.limit_amount !== undefined 
+        ? Math.max(0, initialData.limit_amount - 200) 
+        : '';
+      return { ...initialData, amount: suggested };
+    }
+    return initialData || {};
+  });
   const [numberOfPayments, setNumberOfPayments] = useState<number | ''>('');
 
   // Effect to sync formData if initialData changes (e.g., switching between different goals)
   useEffect(() => {
-    setFormData(initialData || {});
+    if (type === 'OPTIMIZE_BUDGET' && initialData) {
+      const suggested = initialData.limit_amount !== undefined 
+        ? Math.max(0, initialData.limit_amount - 200) 
+        : '';
+      setFormData({ ...initialData, amount: suggested });
+    } else {
+      setFormData(initialData || {});
+    }
     // For editing debt, if min_payment exists, try to derive numberOfPayments
     if ((type === 'EDIT_DEBT' || type === 'ADD_DEBT') && initialData?.min_payment && initialData?.remaining_amount && initialData?.interest_rate !== null) {
       const num = calculateNumPayments(
@@ -82,7 +97,7 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
     } else {
       setNumberOfPayments('');
     }
-  }, [initialData]);
+  }, [initialData, type]);
 
   const calculatedMinPayment = useMemo(() => {
     const principal = formData.remaining_amount || formData.total_amount || 0;
@@ -93,12 +108,20 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type: inputType } = e.target;
-    setFormData((prev: any) => ({ ...prev, [name]: inputType === 'number' ? parseFloat(value) : value }));
+    setFormData((prev: any) => ({ 
+      ...prev, 
+      [name]: inputType === 'number' ? (value === '' ? '' : parseFloat(value)) : value 
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isConfirmDisabled) return;
     const dataToConfirm = { ...formData };
+
+    if (type === 'OPTIMIZE_BUDGET') {
+      dataToConfirm.amount = Number(formData.amount);
+    }
 
     if (type === 'ADD_DEBT' || type === 'EDIT_DEBT') {
       if (calculatedMinPayment !== null) {
@@ -114,6 +137,10 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
 
   // Validation logic to disable the confirm button if inputs are invalid
   const isConfirmDisabled = useMemo(() => {
+    if (type === 'OPTIMIZE_BUDGET') {
+      return formData.amount === '' || formData.amount === undefined || isNaN(Number(formData.amount)) || Number(formData.amount) < 0;
+    }
+
     if (type === 'ADD_DEBT' || type === 'EDIT_DEBT') {
       const principal = formData.remaining_amount || formData.total_amount || 0;
       const annualRate = formData.interest_rate || 0;
@@ -165,7 +192,7 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
                   required 
                   name="amount" 
                   type="number" 
-                  value={formData.amount || initialData.limit_amount - 200}
+                  value={formData.amount ?? ''}
                   aria-label="New Budget Limit"
                   onChange={handleChange}
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
@@ -241,7 +268,7 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
                 type="number" 
                 step="0.01" 
                 aria-label="Amount"
-                value={formData.amount || ''}
+                value={formData.amount ?? ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors"
               />
@@ -298,7 +325,7 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
               <div className="grid grid-cols-2 gap-4"> {/* Added aria-label to inputs */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 transition-colors">Interest Rate (%)</label>
-                  <input name="interest_rate" type="number" step="0.1" value={formData.interest_rate || ''} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors" aria-label="Interest Rate" />
+                  <input name="interest_rate" type="number" step="0.1" value={formData.interest_rate ?? ''} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors" aria-label="Interest Rate" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 transition-colors"># of Monthly Payments</label>
@@ -346,7 +373,7 @@ export const FinancialActionModal: React.FC<FinancialActionModalProps> = ({
             <button 
               type="submit"
               disabled={isConfirmDisabled}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-bold shadow-md"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm
             </button>

@@ -43,7 +43,7 @@ const AmortizationModal = React.lazy(() => import('./AmortizationModal').then(m 
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { budgets, upsertBudget } = useBudgets();
+  const { budgets, upsertBudget, deleteBudget, refreshBudgets } = useBudgets();
   const { 
     transactions,
     loading,
@@ -77,9 +77,10 @@ export const Dashboard: React.FC = () => {
       refreshDebts(),
       refreshRules(),
       refreshTransactionRules(),
-      refreshCategories()
+      refreshCategories(),
+      refreshBudgets()
     ]);
-  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules, refreshTransactionRules, refreshCategories]);
+  }, [refreshTransactions, refreshAccounts, refreshGoals, refreshDebts, refreshRules, refreshTransactionRules, refreshCategories, refreshBudgets]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -849,10 +850,14 @@ export const Dashboard: React.FC = () => {
           budgets={budgets} 
           transactions={filteredTransactions} 
           categories={budgetTrackerCategories} 
+          allCategories={categories}
           onUpsertBudget={(cat, limit) => {
             if (!user?.id) return Promise.resolve({ success: false, error: 'Auth required' });
             return upsertBudget(cat, limit, user.id);
           }} 
+          onDeleteBudget={(cat, id) => {
+            return deleteBudget(cat, user?.id, id);
+          }}
         />
 
         <div className="mb-8">

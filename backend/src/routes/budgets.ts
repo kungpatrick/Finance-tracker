@@ -50,4 +50,11 @@ router.patch('/bulk', asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({ success: true });
 }));
 
+router.delete('/:category', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { category } = req.params;
+  const userId = req.user?.id;
+  await query('DELETE FROM budgets WHERE user_id = $1 AND category = $2', [userId, category]);
+  res.json({ success: true });
+}));
+
 export default router;
