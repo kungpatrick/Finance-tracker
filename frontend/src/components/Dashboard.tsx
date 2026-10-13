@@ -344,13 +344,21 @@ export const Dashboard: React.FC = () => {
         
         if (remaining.length === 0) await unmarkAsProcessed(ruleId);
       }
-      refreshAllData(); // Only refresh if bulk delete was successful
+      await refreshAllData(); // Only refresh if bulk delete was successful
+    } else {
+      console.error('Failed to bulk delete transactions:', result.error);
+      alert(`Failed to delete transactions: ${result.error || 'Unknown error'}`);
     }
   };
   
   const handleBulkStatusUpdate = async (ids: string[], is_reconciled: boolean) => {
     const result = await bulkUpdateTransactionStatus(ids, is_reconciled);
-    if (result.success) refreshAllData();
+    if (result.success) {
+      await refreshAllData();
+    } else {
+      console.error('Failed to bulk update status:', result.error);
+      alert(`Failed to update status: ${result.error || 'Unknown error'}`);
+    }
   };
 
   const handleDeleteTransactionAndUnmarkRule = async (id: string, receipt?: string | null, recurringRuleId?: string | null) => {

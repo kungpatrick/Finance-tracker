@@ -12,8 +12,8 @@ interface TransactionTableProps {
   onDuplicate: (t: Transaction) => void;
   onDelete: (t: Transaction) => void; // Change to pass full transaction
   onUpdateStatus: (id: string, is_reconciled: boolean) => void;
-  onBulkDelete: (ids: string[]) => void;
-  onBulkStatusUpdate: (ids: string[], is_reconciled: boolean) => void;
+  onBulkDelete: (ids: string[]) => void | Promise<void>;
+  onBulkStatusUpdate: (ids: string[], is_reconciled: boolean) => void | Promise<void>;
   onViewReceipt: (url: string) => void;
 }
 
@@ -42,20 +42,31 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
             <span className="text-white text-sm font-bold">{selectedIds.size} selected</span>
             <div className="h-4 w-px bg-indigo-400" />
             <button 
-              onClick={() => { onBulkStatusUpdate(Array.from(selectedIds), true); setSelectedIds(new Set()); }}
+              onClick={async () => { 
+                await onBulkStatusUpdate(Array.from(selectedIds), true); 
+                setSelectedIds(new Set()); 
+              }}
               className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors"
             >
               Mark Cleared
             </button>
             <button 
-              onClick={() => { onBulkStatusUpdate(Array.from(selectedIds), false); setSelectedIds(new Set()); }}
+              onClick={async () => { 
+                await onBulkStatusUpdate(Array.from(selectedIds), false); 
+                setSelectedIds(new Set()); 
+              }}
               className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors"
             >
               Mark Pending
             </button>
           </div>
           <button 
-            onClick={() => { if(window.confirm(`Delete ${selectedIds.size} transactions?`)) { onBulkDelete(Array.from(selectedIds)); setSelectedIds(new Set()); } }}
+            onClick={async () => { 
+              if (window.confirm(`Delete ${selectedIds.size} transaction${selectedIds.size > 1 ? 's' : ''}?`)) { 
+                await onBulkDelete(Array.from(selectedIds)); 
+                setSelectedIds(new Set()); 
+              } 
+            }}
             className="px-4 py-1.5 bg-red-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-red-600 transition-colors"
           >
             Delete Selected

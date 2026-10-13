@@ -7,8 +7,6 @@ export type Transaction = Database['public']['Tables']['transactions']['Row'];
 export type TransactionInsert = Database['public']['Tables']['transactions']['Insert'];
 export type TransactionUpdate = Database['public']['Tables']['transactions']['Update'];
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,42 +112,41 @@ export const useTransactions = () => {
     return { success: true, data: data ? data[0] : null };
   };
 
-  const getAuthHeaders = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error('User not authenticated');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    };
-  };
-
   const bulkDeleteTransactions = async (ids: string[]) => {
     setError(null);
-    try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/api/transactions/bulk`, { 
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({ ids }),
-      });
+    if (!ids || ids.length === 0) return { success: true };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Server error (${response.status})`;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
+    try {
+      const transactionsToDelete = transactions.filter(t => ids.includes(t.id));
+      const receiptPaths = transactionsToDelete
+        .map(t => t.receipt_url)
+        .filter((path): path is string => Boolean(path));
+
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        console.error('Error deleting transactions:', error);
+        setError(error.message);
+        return { success: false, error: error.message };
+      }
+
+      if (receiptPaths.length > 0) {
+        const { error: deleteFileError } = await supabase.storage
+          .from('receipts')
+          .remove(receiptPaths);
+        if (deleteFileError) {
+          console.error('Error deleting receipt files:', deleteFileError);
+          // Don't block transaction deletion if file deletion fails
         }
-        throw new Error(errorMessage);
       }
 
       setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
       return { success: true };
     } catch (err: any) {
+      console.error('Error in bulkDeleteTransactions:', err);
       setError(err.message);
       return { success: false, error: err.message };
     }
@@ -157,26 +154,24 @@ export const useTransactions = () => {
 
   const bulkUpdateTransactionStatus = async (ids: string[], is_reconciled: boolean) => {
     setError(null);
+    if (!ids || ids.length === 0) return { success: true };
+
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/api/transactions/bulk-status`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ ids, is_reconciled }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Server error (${response.status})`;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
+      const { error } = await supabase
+        .from('transactions' as any)
+        .update({ is_reconciled })
+        .in('id', ids);
+
+      if (error) {
+        console.error('Error updating transactions:', error);
+        setError(error.message);
+        return { success: false, error: error.message };
       }
+
+      setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, is_reconciled } : t));
       return { success: true };
     } catch (err: any) {
+      console.error('Error in bulkUpdateTransactionStatus:', err);
       setError(err.message);
       return { success: false, error: err.message };
     }
