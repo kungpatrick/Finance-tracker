@@ -374,19 +374,30 @@ export const Dashboard: React.FC = () => {
   const totalDebt = useMemo(() => debts.reduce((acc: number, d: any) => acc + (Number(d.remaining_amount) || 0), 0), [debts]);
   
   // Unified Home Currency Calculation (Normalizing to USD)
+  const currencyRates: Record<string, number> = useMemo(() => ({ 
+    USD: 1, EUR: 1.09, GBP: 1.27, CAD: 0.74, AUD: 0.66, JPY: 0.0067, CNY: 0.14 
+  }), []);
+
   const totalAccountBalance = useMemo(() => {
-    // Note: For production, consider fetching these rates from an API
-    // to ensure user balances are accurate.
-    const rates: Record<string, number> = { 
-      USD: 1, EUR: 1.09, GBP: 1.27, CAD: 0.74, AUD: 0.66, JPY: 0.0067, CNY: 0.14 
-    };
-    
     return accounts.reduce((sum, acc) => {
-      const rate = rates[acc.currency] || 1;
+      const rate = currencyRates[acc.currency] || 1;
       const balanceInHomeCurrency = Number(acc.balance) * rate;
-      return sum + (acc.type === 'credit' ? -balanceInHomeCurrency : balanceInHomeCurrency);
+      // In this tracker, expenses subtract from account balances, so credit card liabilities
+      // and overdrafts are already stored as negative numbers. Adding signed balances correctly
+      // reduces net worth when debt is owed.
+      return sum + balanceInHomeCurrency;
     }, 0);
-  }, [accounts]);
+  }, [accounts, currencyRates]);
+
+  // Aggregate all outstanding debts (revolving credit/negative balances + external liabilities)
+  const totalOutstandingDebt = useMemo(() => {
+    const revolvingDebt = accounts.reduce((sum, acc) => {
+      const rate = currencyRates[acc.currency] || 1;
+      const bal = Number(acc.balance) * rate;
+      return sum + (bal < 0 ? Math.abs(bal) : 0);
+    }, 0);
+    return revolvingDebt + totalDebt;
+  }, [accounts, totalDebt, currencyRates]);
 
   // Calculate habit-based monthly net flow (Income - Expense)
   const avgMonthlyNetFlow = useMemo(() => {
@@ -676,6 +687,7 @@ export const Dashboard: React.FC = () => {
       <WealthProjectionCard 
         currentNetWorth={totalAccountBalance + totalSavings - totalDebt}
         monthlyNetFlow={avgMonthlyNetFlow}
+        totalDebt={totalOutstandingDebt}
       />
 
         <div className="bg-white dark:bg-black p-6 rounded-lg shadow-sm mb-6 border border-gray-200 dark:border-gray-700 transition-colors">
