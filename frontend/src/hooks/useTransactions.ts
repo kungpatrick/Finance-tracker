@@ -117,33 +117,52 @@ export const useTransactions = () => {
     if (!ids || ids.length === 0) return { success: true };
 
     try {
-      const transactionsToDelete = transactions.filter(t => ids.includes(t.id));
+      const idSet = new Set(ids);
+      const transactionsToDelete = transactions.filter(t => idSet.has(t.id));
       const receiptPaths = transactionsToDelete
         .map(t => t.receipt_url)
         .filter((path): path is string => Boolean(path));
 
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .in('id', ids);
+      // PostgREST/Supabase sends filter IDs via query params in the URL (?id=in.(...)).
+      // Passing too many IDs at once (e.g., 500+) causes the URL to exceed proxy/server header limits,
+      // resulting in net::ERR_HTTP2_PROTOCOL_ERROR / URI Too Long (414) / TypeError: Failed to fetch.
+      // Therefore, batch the deletion in chunks of 80 IDs.
+      const CHUNK_SIZE = 80;
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        chunks.push(ids.slice(i, i + CHUNK_SIZE));
+      }
 
-      if (error) {
-        console.error('Error deleting transactions:', error);
-        setError(error.message);
-        return { success: false, error: error.message };
+      const results = await Promise.all(
+        chunks.map(chunk =>
+          supabase
+            .from('transactions')
+            .delete()
+            .in('id', chunk)
+        )
+      );
+
+      const failedResult = results.find(r => r.error);
+      if (failedResult && failedResult.error) {
+        console.error('Error deleting transactions:', failedResult.error);
+        setError(failedResult.error.message);
+        return { success: false, error: failedResult.error.message };
       }
 
       if (receiptPaths.length > 0) {
-        const { error: deleteFileError } = await supabase.storage
-          .from('receipts')
-          .remove(receiptPaths);
-        if (deleteFileError) {
-          console.error('Error deleting receipt files:', deleteFileError);
-          // Don't block transaction deletion if file deletion fails
+        for (let i = 0; i < receiptPaths.length; i += CHUNK_SIZE) {
+          const chunk = receiptPaths.slice(i, i + CHUNK_SIZE);
+          const { error: deleteFileError } = await supabase.storage
+            .from('receipts')
+            .remove(chunk);
+          if (deleteFileError) {
+            console.error('Error deleting receipt files:', deleteFileError);
+            // Don't block transaction deletion if file deletion fails
+          }
         }
       }
 
-      setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+      setTransactions(prev => prev.filter(t => !idSet.has(t.id)));
       return { success: true };
     } catch (err: any) {
       console.error('Error in bulkDeleteTransactions:', err);
@@ -157,18 +176,30 @@ export const useTransactions = () => {
     if (!ids || ids.length === 0) return { success: true };
 
     try {
-      const { error } = await supabase
-        .from('transactions' as any)
-        .update({ is_reconciled })
-        .in('id', ids);
-
-      if (error) {
-        console.error('Error updating transactions:', error);
-        setError(error.message);
-        return { success: false, error: error.message };
+      const CHUNK_SIZE = 80;
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        chunks.push(ids.slice(i, i + CHUNK_SIZE));
       }
 
-      setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, is_reconciled } : t));
+      const results = await Promise.all(
+        chunks.map(chunk =>
+          supabase
+            .from('transactions' as any)
+            .update({ is_reconciled })
+            .in('id', chunk)
+        )
+      );
+
+      const failedResult = results.find(r => r.error);
+      if (failedResult && failedResult.error) {
+        console.error('Error updating transactions:', failedResult.error);
+        setError(failedResult.error.message);
+        return { success: false, error: failedResult.error.message };
+      }
+
+      const idSet = new Set(ids);
+      setTransactions(prev => prev.map(t => idSet.has(t.id) ? { ...t, is_reconciled } : t));
       return { success: true };
     } catch (err: any) {
       console.error('Error in bulkUpdateTransactionStatus:', err);

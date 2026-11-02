@@ -329,7 +329,8 @@ export const Dashboard: React.FC = () => {
 
   const handleBulkDelete = async (ids: string[]) => {
     // 1. Identify affected recurring rules before deletion
-    const ruleIdsToCheck = [...new Set(transactions.filter(t => ids.includes(t.id)).map(t => t.recurring_rule_id).filter(Boolean) as string[])];
+    const idSet = new Set(ids);
+    const ruleIdsToCheck = [...new Set(transactions.filter(t => idSet.has(t.id)).map(t => t.recurring_rule_id).filter(Boolean) as string[])];
     const result = await bulkDeleteTransactions(ids);
     if (result.success) {
       const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
@@ -339,15 +340,17 @@ export const Dashboard: React.FC = () => {
         const remaining = transactions.filter(t => 
           t.recurring_rule_id === ruleId && 
           (t.transaction_date || '').startsWith(currentMonth.slice(0, 7)) &&
-          !ids.includes(t.id)
+          !idSet.has(t.id)
         );
         
         if (remaining.length === 0) await unmarkAsProcessed(ruleId);
       }
       await refreshAllData(); // Only refresh if bulk delete was successful
+      return true;
     } else {
       console.error('Failed to bulk delete transactions:', result.error);
       alert(`Failed to delete transactions: ${result.error || 'Unknown error'}`);
+      return false;
     }
   };
   

@@ -12,8 +12,8 @@ interface TransactionTableProps {
   onDuplicate: (t: Transaction) => void;
   onDelete: (t: Transaction) => void; // Change to pass full transaction
   onUpdateStatus: (id: string, is_reconciled: boolean) => void;
-  onBulkDelete: (ids: string[]) => void | Promise<void>;
-  onBulkStatusUpdate: (ids: string[], is_reconciled: boolean) => void | Promise<void>;
+  onBulkDelete: (ids: string[]) => any;
+  onBulkStatusUpdate: (ids: string[], is_reconciled: boolean) => any;
   onViewReceipt: (url: string) => void;
 }
 
@@ -21,6 +21,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
   const { transactions, accounts, sortConfig, categories, onSort, onEdit, onDuplicate, onDelete, onUpdateStatus, onBulkDelete, onBulkStatusUpdate, onViewReceipt } = props;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const toggleSelectAll = () => {
     if (selectedIds.size === transactions.length) setSelectedIds(new Set());
@@ -42,34 +43,54 @@ export const TransactionTable: React.FC<TransactionTableProps> = (props) => {
             <span className="text-white text-sm font-bold">{selectedIds.size} selected</span>
             <div className="h-4 w-px bg-indigo-400" />
             <button 
+              disabled={isProcessing}
               onClick={async () => { 
-                await onBulkStatusUpdate(Array.from(selectedIds), true); 
-                setSelectedIds(new Set()); 
+                setIsProcessing(true);
+                try {
+                  await onBulkStatusUpdate(Array.from(selectedIds), true); 
+                  setSelectedIds(new Set()); 
+                } finally {
+                  setIsProcessing(false);
+                }
               }}
-              className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors"
+              className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors disabled:opacity-50"
             >
               Mark Cleared
             </button>
             <button 
+              disabled={isProcessing}
               onClick={async () => { 
-                await onBulkStatusUpdate(Array.from(selectedIds), false); 
-                setSelectedIds(new Set()); 
+                setIsProcessing(true);
+                try {
+                  await onBulkStatusUpdate(Array.from(selectedIds), false); 
+                  setSelectedIds(new Set()); 
+                } finally {
+                  setIsProcessing(false);
+                }
               }}
-              className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors"
+              className="text-white text-xs font-bold uppercase hover:text-indigo-200 transition-colors disabled:opacity-50"
             >
               Mark Pending
             </button>
           </div>
           <button 
+            disabled={isProcessing}
             onClick={async () => { 
               if (window.confirm(`Delete ${selectedIds.size} transaction${selectedIds.size > 1 ? 's' : ''}?`)) { 
-                await onBulkDelete(Array.from(selectedIds)); 
-                setSelectedIds(new Set()); 
+                setIsProcessing(true);
+                try {
+                  const res = await onBulkDelete(Array.from(selectedIds)); 
+                  if (res !== false) {
+                    setSelectedIds(new Set()); 
+                  }
+                } finally {
+                  setIsProcessing(false);
+                }
               } 
             }}
-            className="px-4 py-1.5 bg-red-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-red-600 transition-colors"
+            className="px-4 py-1.5 bg-red-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
           >
-            Delete Selected
+            {isProcessing ? 'Deleting...' : 'Delete Selected'}
           </button>
         </div>
       )}
