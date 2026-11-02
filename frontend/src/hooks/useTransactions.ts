@@ -125,28 +125,26 @@ export const useTransactions = () => {
 
       // PostgREST/Supabase sends filter IDs via query params in the URL (?id=in.(...)).
       // Passing too many IDs at once (e.g., 500+) causes the URL to exceed proxy/server header limits,
-      // resulting in net::ERR_HTTP2_PROTOCOL_ERROR / URI Too Long (414) / TypeError: Failed to fetch.
-      // Therefore, batch the deletion in chunks of 80 IDs.
-      const CHUNK_SIZE = 80;
-      const chunks: string[][] = [];
+      // resulting in net::ERR_HTTP2_PROTOCOL_ERROR / URI Too Long (414).
+      //
+      // CRITICAL: Batches MUST run sequentially (NOT in parallel with Promise.all).
+      // Transactions have database triggers (tr_update_account_balance, tr_sync_goal_debt)
+      // that update account/goal balances upon row deletion. Concurrent DELETE requests
+      // try to acquire row locks on the same account records in parallel, causing Postgres
+      // error 40P01 ("deadlock detected").
+      const CHUNK_SIZE = 100;
       for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-        chunks.push(ids.slice(i, i + CHUNK_SIZE));
-      }
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase
+          .from('transactions')
+          .delete()
+          .in('id', chunk);
 
-      const results = await Promise.all(
-        chunks.map(chunk =>
-          supabase
-            .from('transactions')
-            .delete()
-            .in('id', chunk)
-        )
-      );
-
-      const failedResult = results.find(r => r.error);
-      if (failedResult && failedResult.error) {
-        console.error('Error deleting transactions:', failedResult.error);
-        setError(failedResult.error.message);
-        return { success: false, error: failedResult.error.message };
+        if (error) {
+          console.error('Error deleting transactions batch:', error);
+          setError(error.message);
+          return { success: false, error: error.message };
+        }
       }
 
       if (receiptPaths.length > 0) {
@@ -176,26 +174,20 @@ export const useTransactions = () => {
     if (!ids || ids.length === 0) return { success: true };
 
     try {
-      const CHUNK_SIZE = 80;
-      const chunks: string[][] = [];
+      // Must also run sequentially to avoid deadlocks on accounts during trigger execution
+      const CHUNK_SIZE = 100;
       for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-        chunks.push(ids.slice(i, i + CHUNK_SIZE));
-      }
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase
+          .from('transactions' as any)
+          .update({ is_reconciled })
+          .in('id', chunk);
 
-      const results = await Promise.all(
-        chunks.map(chunk =>
-          supabase
-            .from('transactions' as any)
-            .update({ is_reconciled })
-            .in('id', chunk)
-        )
-      );
-
-      const failedResult = results.find(r => r.error);
-      if (failedResult && failedResult.error) {
-        console.error('Error updating transactions:', failedResult.error);
-        setError(failedResult.error.message);
-        return { success: false, error: failedResult.error.message };
+        if (error) {
+          console.error('Error updating transactions batch:', error);
+          setError(error.message);
+          return { success: false, error: error.message };
+        }
       }
 
       const idSet = new Set(ids);
